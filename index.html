@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F5EEDC">
+<title>La Union Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+:root{
+ --bg:#F5EEDC;--paper:#FFFDF6;--ink:#273735;--muted:#7E8178;--line:#DED6C5;
+ --food:#e36888;--drinks:#f08c21;--bar:#f2d88f;--dessert:#6698cc;--activity:#b4b534;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#eee8d8}
+body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{max-width:540px;min-height:100vh;margin:auto;background:var(--bg);position:relative}
+.landing{min-height:100vh;padding:58px 24px 42px;display:flex;flex-direction:column;justify-content:center}
+.landing h1{font-size:27px;letter-spacing:-.04em;margin:0 0 28px;font-weight:800}
+.category-list{display:flex;flex-direction:column;gap:13px}
+.category{
+ border:0;border-radius:18px;padding:21px 20px;text-align:left;font-size:19px;
+ font-weight:850;letter-spacing:-.02em;color:#273735;box-shadow:0 5px 18px rgba(39,55,53,.08);
+ transition:transform .12s ease;
+}
+.category:active{transform:scale(.98)}
+.food{background:var(--food)}.drinks{background:var(--drinks)}.bar{background:var(--bar)}
+.dessert{background:var(--dessert)}.activity{background:var(--activity)}
+.near{background:var(--ink);color:#fff}
+.page{display:none;min-height:100vh;padding-bottom:30px}.page.active{display:block}
+.page-top{
+ position:sticky;top:0;z-index:50;background:rgba(245,238,220,.97);backdrop-filter:blur(12px);
+ padding:12px 15px;border-bottom:1px solid var(--line)
+}
+.back{
+ display:inline-flex;align-items:center;border:0;background:var(--paper);color:var(--ink);
+ border:1px solid var(--line);border-radius:14px;padding:12px 18px;min-height:44px;font-size:15px;font-weight:800;
+ box-shadow:0 4px 14px rgba(39,55,53,.07)
+}
+.page-title{padding:17px 15px 8px;font-size:24px;font-weight:850;letter-spacing:-.04em}
+.searchbar{margin:0 15px 12px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.searchbar input{width:100%;border:0;background:none;outline:0;color:var(--ink)}
+.chips{display:flex;gap:8px;overflow:auto;padding:0 15px 9px}
+.chip{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:8px 12px;font-size:11px;white-space:nowrap;color:var(--ink)}
+.chip.active{background:var(--ink);color:white;border-color:var(--ink)}
+.cards{padding:0 15px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:17px;padding:12px}
+.cardmain{display:flex;gap:12px}.thumb{width:82px;height:82px;border-radius:13px;overflow:hidden;flex:none;background:#d7cdb9}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.fallback{width:100%;height:100%;display:flex;align-items:flex-end;padding:9px;background:linear-gradient(145deg,#dfc9aa,#a4b4a0);font-size:11px;font-weight:800}
+.cardbody{min-width:0;flex:1}.name{font-size:16px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.handle{font-size:10px;color:var(--muted);margin-top:2px}.status{font-size:11px;font-weight:750;margin-top:8px}
+.open{color:#477e63}.closed{color:#a35a63}.verify{color:#8b7651}
+.stats{display:flex;gap:10px;font-size:10px;color:var(--muted);margin-top:7px}.stats b{color:var(--ink)}
+.actions{display:flex;gap:7px;margin-top:10px}
+.btn{border:0;border-radius:11px;padding:10px 7px;font-size:11px;font-weight:800;min-height:40px;flex:1;line-height:1.15}
+.go{background:var(--ink);color:white}.ig{background:#eadfca;color:var(--ink)}.view{background:#e1eadf;color:var(--ink)}
+.section-label{padding:17px 15px 8px;font-size:16px;font-weight:850}
+.section-label small{display:block;color:var(--muted);font-size:10px;font-weight:600;margin-top:3px}
+.nearest-wrap{padding:0 15px}
+.nearest-wrap .card{margin-bottom:10px}
+.detail-actions{display:flex;gap:8px;margin-top:12px}
+.detail-actions .wide{min-height:44px}
+
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:0 2px}
+.tile{border:0;padding:0;aspect-ratio:1;background:#d9cfbd;overflow:hidden;position:relative}
+.tile img{width:100%;height:100%;object-fit:cover}.tile .fallback{font-size:10px}
+.tile-label{position:absolute;left:7px;bottom:7px;color:white;text-shadow:0 1px 5px #000;font-size:10px;font-weight:800}
+.map-wrap{padding:0 0 10px}
+#realMap{height:430px;width:100%;background:#ddd6c7}
+.map-note{margin:0 15px;background:var(--paper);border:1px solid var(--line);border-radius:15px;padding:12px;font-size:11px}
+.map-note b{font-size:13px}.map-note small{display:block;color:var(--muted);margin-top:4px;line-height:1.4}
+.detail-photo{height:330px;background:#d7cdb9;overflow:hidden}.detail-photo img{width:100%;height:100%;object-fit:cover}
+.detail{padding:0 15px 35px}.detail h1{font-size:29px;letter-spacing:-.05em;margin:16px 0 2px}.detail .handle{font-size:12px}
+.info{margin-top:14px;background:var(--paper);border:1px solid var(--line);border-radius:17px;padding:12px}
+.row{display:flex;justify-content:space-between;gap:20px;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}.row:last-child{border:0}.row span{color:var(--muted)}
+.wide{flex:1;padding:12px;border:0;border-radius:13px;font-weight:850}.dark{background:var(--ink);color:white}.light{background:#e1eadf;color:var(--ink)}
+.subsection{padding:18px 15px 8px;font-size:16px;font-weight:850}.nearby .card{padding:10px}
+.empty{text-align:center;color:var(--muted);font-size:13px;padding:45px 20px}
+.history{padding:0 15px}.historyitem{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px;margin:9px 0}.historyitem b{font-size:13px}.historyitem small{display:block;color:var(--muted);margin-top:3px}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--paper);color:var(--ink)}
+.leaflet-popup-content{font-family:inherit;font-size:12px}
+@media(min-width:700px){body{padding:20px 0}.app{border-radius:28px;overflow:hidden;box-shadow:0 20px 70px rgba(39,55,53,.14)}}
+</style>
+<style>
+.location-status{width:100%;margin:10px 0 4px}.locating,.located,.location-prompt{border:1px solid var(--line);border-radius:13px;padding:11px 13px;background:#f4eddf;font-size:12px}.location-prompt{margin:12px 15px}.location-prompt small{display:block;color:var(--muted);margin-top:4px}.location-enable{border:0;border-radius:11px;padding:10px 13px;margin-top:8px;background:var(--ink);color:#fff;font-weight:800;font-size:11px}.section-label{padding:17px 15px 8px;font-size:16px;font-weight:850}.section-label small{display:block;color:var(--muted);font-size:10px;font-weight:600;margin-top:3px}
+</style><style>body{font-weight:400}.category,.page-title,h1,h2,h3,.name,.modal-primary,.back{font-weight:700}.bento{display:grid;grid-template-columns:1fr 1fr;gap:12px}.bento .category{min-height:125px}.bento .activity{grid-column:1/3}.tagrow{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.tag{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:5px 8px;font-size:10px}.clickable{cursor:pointer}.sortrow{display:flex;justify-content:space-between;align-items:center;padding:8px 15px;font-size:11px;color:var(--muted)}.sortrow select{border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:8px 10px;color:var(--ink)}.hero-carousel{width:100%;aspect-ratio:1;background:#e9dfcc;overflow:hidden;position:relative}.photo-track{display:flex;width:100%;height:100%;overflow-x:auto;scroll-snap-type:x mandatory}.photo-track img{width:100%;height:100%;object-fit:cover;flex:0 0 100%;scroll-snap-align:start}.hero-placeholder{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:5px}.hero-placeholder span{font-weight:700}.photo-dots{position:absolute;bottom:10px;left:0;right:0;text-align:center}.photo-dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:#fff8;margin:0 3px}.photo-dots .active{background:#fff}.highlight{margin:14px 0;padding:14px;border-radius:15px;background:#eee3c8}.highlight small{display:block;font-size:9px;color:var(--muted);margin-bottom:5px}.highlight b{font-size:17px}.tabbar{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(540px,100%);display:grid;grid-template-columns:1fr 1fr 1fr;background:rgba(255,253,246,.97);border-top:1px solid var(--line);z-index:100}.tabbar button{border:0;background:none;padding:14px 7px;font-size:11px}.modal-backdrop{display:none;position:fixed;inset:0;background:#27373599;z-index:300;align-items:flex-end;justify-content:center;padding:15px}.modal-backdrop.show{display:flex}.location-modal{width:min(510px,100%);background:var(--paper);border-radius:22px;padding:24px}.location-modal h2{font-size:25px;line-height:1.1;margin:6px 0 10px}.location-modal p{color:var(--muted);font-size:13px;line-height:1.5}.modal-kicker{font-size:9px;color:var(--muted)}.modal-primary,.modal-secondary{width:100%;border:0;border-radius:12px;padding:13px;margin-top:8px}.modal-primary{background:var(--ink);color:#fff}.modal-secondary{background:#e9e1d1;color:var(--ink)}.transport-tabs{display:flex;gap:7px;overflow:auto;padding:0 15px 12px}.transport-tab{white-space:nowrap;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:9px 12px}.transport-tab.active{background:var(--ink);color:#fff}.transport-card{margin:0 15px 10px;padding:13px;background:var(--paper);border:1px solid var(--line);border-radius:15px;display:grid;grid-template-columns:64px 1fr;gap:12px}.transport-photo{width:64px;height:64px;border-radius:12px;background:#e8dfce;overflow:hidden}.transport-photo img{width:100%;height:100%;object-fit:cover}.transport-card h3{margin:0 0 4px;font-size:15px}.transport-card p{margin:3px 0;color:var(--muted);font-size:11px}.contact-btn{display:inline-block;margin-top:7px;background:var(--ink);color:#fff;text-decoration:none;padding:8px 10px;border-radius:9px;font-size:10px}.description{font-size:13px;line-height:1.5;color:var(--muted)} .topline{display:flex;align-items:center;gap:10px}.breadcrumb{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.page-top{padding-left:12px;padding-right:12px}</style><style>
+/* V9 UI updates */
+.landing{justify-content:flex-start;padding-top:38px;padding-bottom:110px}
+.promo-carousel{margin:0 0 22px;position:relative;overflow:hidden;border-radius:22px}
+.promo-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.promo-track::-webkit-scrollbar{display:none}
+.promo-slide{min-width:100%;aspect-ratio:16/8;scroll-snap-align:start;position:relative;display:flex;align-items:flex-end;padding:18px;color:#273735;overflow:hidden}
+.promo-slide .promo-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:800;letter-spacing:-.06em}
+.promo-slide .promo-copy{position:relative;z-index:2;background:rgba(255,253,246,.92);border-radius:14px;padding:9px 12px;max-width:78%}
+.promo-copy small{display:block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800}.promo-copy b{display:block;font-size:18px;line-height:1.05}.promo-copy span{display:block;font-size:10px;margin-top:3px;color:var(--muted)}
+.promo-dots{text-align:center;position:absolute;bottom:9px;left:0;right:0;z-index:4}.promo-dots i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#27373555;margin:0 3px}.promo-dots i.active{background:#273735}
+.page-top{padding:12px 12px;border-bottom:0;background:rgba(245,238,220,.88)}
+.topline{gap:8px}.back{border-radius:999px;padding:10px 16px;min-height:42px;box-shadow:0 5px 18px rgba(39,55,53,.12)}
+.breadcrumb{background:rgba(255,253,246,.82);border:1px solid var(--line);border-radius:999px;padding:9px 12px;box-shadow:0 5px 18px rgba(39,55,53,.08)}
+.card{padding:9px;border-radius:18px}.cardmain{gap:14px}.thumb{width:112px;height:112px;border-radius:15px}.fallback{align-items:center;justify-content:center;padding:8px;font-size:25px;line-height:1;letter-spacing:-.05em;text-align:center}
+.cardbody{padding:3px 2px 0}.name{font-size:17px}.food-banner{display:inline-flex;align-items:center;gap:5px;margin-top:5px;padding:5px 8px;border-radius:8px;background:var(--food);font-size:9px;font-weight:800;color:#273735;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.food-banner.bar-kind{background:var(--bar)}
+.actions{margin-top:9px}.btn{min-height:38px;padding:9px 7px}.section-label{padding-top:15px}.nearest-wrap{display:grid;grid-template-columns:1fr 1fr;gap:9px}.nearest-wrap .card{margin:0}.nearest-wrap .thumb{width:100%;height:auto;aspect-ratio:1}.nearest-wrap .cardmain{display:block}.nearest-wrap .cardbody{padding:8px 2px 0}.nearest-wrap .actions{display:none}
+.detail h1{font-size:29px}.detail .hero-carousel{border-radius:0}.hero-carousel{aspect-ratio:1}.hero-placeholder{background:var(--placeholder-bg,#d7cdb9);color:#273735}.hero-placeholder strong{font-size:48px;letter-spacing:-.06em}.tabbar{left:50%;bottom:14px;width:calc(100% - 24px);border:1px solid var(--line);border-radius:22px;background:rgba(255,253,246,.94);box-shadow:0 10px 35px rgba(39,55,53,.16);overflow:hidden}.tabbar button{padding:16px 7px;font-size:13px;font-weight:700}.transport-tabs{padding-top:2px}.transport-tab{padding:11px 14px}.transport-card{padding:15px;border-radius:18px;grid-template-columns:72px 1fr}.transport-photo{width:72px;height:72px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:var(--ink)}
+@media(min-width:700px){.tabbar{width:516px;bottom:20px}}
+</style>
+<style>
+/* V10 updates */
+:root{--landmark:#8c78c9;--emergency:#d95d5d}
+.landing .bento{grid-template-columns:repeat(3,1fr);gap:10px}
+.landing .bento .category{grid-column:auto;min-height:104px;padding:16px 12px;font-size:16px}
+.landing .bento .category:nth-child(1){grid-column:1}.landing .bento .category:nth-child(2){grid-column:2}.landing .bento .category:nth-child(3){grid-column:3}
+.landing .bento .category:nth-child(4){grid-column:1}.landing .bento .category:nth-child(5){grid-column:2}.landing .bento .category:nth-child(6){grid-column:3}
+.landmarks{background:var(--landmark)!important;color:#fff!important}
+.featured-label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.promo-carousel{border-radius:12px;margin-bottom:24px}
+.promo-slide{aspect-ratio:16/7;padding:20px;cursor:pointer}
+.promo-slide .promo-copy{border-radius:9px;padding:10px 13px;max-width:82%}
+.promo-copy b{font-size:20px}
+.landmark-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 15px}
+.landmark-card{min-height:145px;border:0;border-radius:12px;padding:16px;text-align:left;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:0 6px 20px rgba(39,55,53,.09)}
+.landmark-card b{font-size:18px;line-height:1.05}.landmark-card small{font-size:10px;margin-top:5px;opacity:.85}
+.tabbar{display:none}
+body.landing-active .tabbar{display:grid}
+.tabbar{bottom:16px;border-radius:24px}
+.tabbar button{padding:14px 6px;font-size:13px;min-height:70px}
+.tabbar .tab-icon{font-size:27px;line-height:1.05;font-weight:800}
+.emergency-page .emergency-card{margin:0 15px 10px;padding:16px;background:var(--paper);border:1px solid var(--line);border-radius:12px}
+.emergency-card h3{margin:0 0 5px;font-size:16px}.emergency-card p{margin:3px 0;color:var(--muted);font-size:11px}.emergency-card .call{display:inline-block;margin-top:9px;background:var(--emergency);color:#fff;text-decoration:none;padding:10px 12px;border-radius:9px;font-weight:800;font-size:11px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- LANDING -->
+<section id="landing" class="page active landing">
+  <h1>Where do you want to go?</h1>
+  <div class="promo-carousel" aria-label="Featured brands">
+    <div class="promo-track" id="promoTrack"></div>
+    <div class="promo-dots" id="promoDots"></div>
+  </div>
+  <div class="category-list bento"><button class="category food" onclick="openCategory('Food')">Food</button><button class="category drinks" onclick="openCategory('Drinks')">Drink</button><button class="category dessert" onclick="openCategory('Dessert')">Dessert</button><button class="category bar" onclick="openCategory('Bar')">Nightlife</button><button class="category activity" onclick="openCategory('Activities')">Activities</button><button class="category landmarks" onclick="openLandmarks()">Landmarks</button></div>
+</section>
+
+<!-- LANDMARKS -->
+<section id="landmarksPage" class="page">
+  <div class="page-top"><div class="topline"><button class="back" onclick="backHome()">← Back</button><span class="breadcrumb">Home › Landmarks</span></div></div>
+  <div class="page-title">Landmarks</div>
+  <div class="section-label">Around San Juan & La Union<small>Tap a landmark to open it in Google Maps.</small></div>
+  <div class="landmark-grid" id="landmarkGrid"></div>
+</section>
+
+<!-- CATEGORY -->
+<section id="categoryPage" class="page">
+  <div class="page-top"><div class="topline"><button class="back" onclick="backHome()">← Back</button><span class="breadcrumb" id="categoryBreadcrumb">Home</span></div></div>
+  <div class="page-title" id="categoryTitle"></div>
+  <div class="searchbar"><input id="categorySearch" placeholder="Search places…" oninput="renderCategory()"></div>
+  <div class="cards" id="categoryCards"></div>
+</section>
+
+<!-- DETAIL -->
+<section id="detailPage" class="page">
+  <div class="page-top"><div class="topline"><button class="back" onclick="backToCategory()">← Back</button><span class="breadcrumb" id="detailBreadcrumb">Home</span></div></div>
+  <div id="detailBody"></div>
+</section>
+
+<!-- MAP -->
+<section id="mapPage" class="page">
+  <div class="page-top"><button class="back" onclick="backToCategory()">← Back</button></div>
+  <div class="page-title">Map</div>
+  <div class="map-wrap"><div id="realMap"></div></div>
+  <div class="map-note" id="mapNote"></div>
+</section>
+
+<!-- EMERGENCY -->
+<section id="emergencyPage" class="page emergency-page">
+  <div class="page-top"><div class="topline"><button class="back" onclick="backHome()">← Back</button><span class="breadcrumb">Home › Emergency</span></div></div>
+  <div class="page-title">Emergency</div>
+  <div class="section-label">Important contacts<small>Tap a number to call. For urgent emergencies, call 911.</small></div>
+  <div id="emergencyList"></div>
+</section>
+
+<!-- TRANSPORTATION -->
+<section id="transportPage" class="page">
+  <div class="page-top"><div class="topline"><button class="back" onclick="goHome()">← Back</button><span class="breadcrumb">Home › Transportation</span></div></div>
+  <div class="page-title">Transportation</div>
+  <div class="transport-tabs"><button class="transport-tab active" onclick="transportType('Drivers',this)">Drivers</button><button class="transport-tab" onclick="transportType('Motorcycle Rental',this)">Motorcycle Rental</button><button class="transport-tab" onclick="transportType('Car Rental',this)">Car Rental</button></div>
+  <div id="transportList" class="transport-list"></div>
+</section>
+
+<!-- HISTORY -->
+<section id="historyPage" class="page">
+  <div class="page-top"><button class="back" onclick="backHome()">← Back</button></div>
+  <div class="page-title">History</div>
+  <div class="history" id="historyList"></div>
+</section>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+const raw=[
+["Bubba’s Pizza",["Food"],"₱₱","bubbas.pizza","M8CP+WP San Juan, La Union",null,"Pizza restaurant in San Juan, La Union.","Days not listed","Pizza",[]],
+["Curo La Union",["Drinks","Food"],"₱₱","curolaunion","M85J+H7 San Juan, La Union",[16.66930,120.31890],"Café and restaurant inside Curbside Villa; specialty coffee and elevated comfort food.","Daily 7:00 AM – 9:00 PM","Cheese Tart",[]],
+["El Union Coffee",["Drinks","Food"],"₱₱","elunioncoffee","M85C+VVW, MacArthur National Highway, San Juan, La Union",[16.66920,120.31955],"Specialty coffee shop in San Juan, La Union.","Mon–Thu 7:00 AM – 9:00 PM · Fri–Sat 7:00 AM – 10:00 PM · Sun 7:00 AM – 9:00 PM","Signature coffee",[]],
+["Fin and Folk",["Food","Activities"],"₱₱₱","finandfolkph","M85C+VRQ The Great Northwest Philippines Travel Stop and Viewing Deck, 184 Manila N Rd, San Juan, La Union",[16.66972,120.31858],"Surf and lifestyle spot at The Great Northwest.","Days not listed","Surf / lifestyle goods",[]],
+["Flotsam and Jetsam",["Activities","Food","Drinks"],"₱₱₱","flotsamandjetsamhostel","MacArthur Highway, Urbiztondo, San Juan, La Union",[16.66995,120.31878],"Beach hostel and creative community centered on art, music, design and surf culture.","Days not listed","Beachfront stay / bar",[]],
+["Fotomatk",["Activities"],"₱₱","fotomatk","1st Floor, Urbiztondo, Great Northwest, MacArthur National Highway, San Juan, La Union",[16.66954,120.31836],"Photo experience brand at The Great Northwest.","Days not listed","Photo experience",[]],
+["Funky Quarters",["Activities","Food","Bar"],"₱₱","funkyquarters","Brgy. Urbiztondo, MacArthur Hwy, San Juan, La Union",[16.65651,120.32126],"Accommodation with restaurant and bar in Urbiztondo.","Days not listed","Funky Tacos",[]],
+["Halu Ice Cream",["Dessert"],"₱","_hellohalu","M86G+6M San Juan, La Union",null,"Ice cream shop in San Juan with vegan and non-vegan options.","Sun 12:00 PM – 9:30 PM · Mon 12:00 PM – 9:30 PM · Tue Closed · Wed–Sat 12:00 PM – 9:30 PM","Ube ice cream",[]],
+["Ili Coffee",["Drinks"],"₱","ili.coffee","M89M+8G San Juan, La Union",[16.66880,120.31965],"Coffee shop in Ili Sur, San Juan.","Days not listed","Coffee",[]],
+["Irugi Coffee",["Drinks","Dessert"],"₱","irugicoffee","M8FP+2M San Juan, La Union",[16.67255,120.32185],"Coffee shop in Arbor Village, Maria Cristina.","Daily 8:00 AM – 4:00 PM","Iced Mocha",[]],
+["July Grocery",["Food","Drinks"],"₱","julygrocery","225 Urbiztondo Rd, San Juan, La Union",[16.66933,120.31898],"Grocery, café and lifestyle spot in Urbiztondo.","Days not listed","Local grocery finds",[]],
+["Katzenjama",["Food"],"₱₱","katzenjama","MacArthur Hwy, San Fernando City, La Union",null,"Japanese restaurant in La Union.","Days not listed","Japanese dishes",[]],
+["Kermit La Union",["Food","Drinks"],"₱₱₱","kermitlaunion","M85C+WX3, 183-2 / 183 MacArthur Hwy, San Juan, La Union",[16.66972,120.31858],"Italian restaurant and surf-lifestyle destination.","Days not listed","Pizza",[]],
+["Little Canggu",["Food","Drinks"],"₱₱","little.canggu","Pentecostal Compound, Brgy. Urbiztondo, San Juan, La Union",[16.66954,120.31836],"Beachfront Indo-Filipino fusion kitchen and surf-culture workspace.","Sun–Mon 8:00 AM – 8:00 PM · Tue Closed · Wed–Thu 8:00 AM – 8:00 PM · Fri–Sat 8:00 AM – 8:00 PM","Bagnet Guling",[]],
+["Mad Monkeys",["Food","Drinks"],"₱₱","madmonkeyslu","Brgy. Urbiztondo, Manila North Road, San Juan, La Union",null,"Casual burger and comfort-food spot in Urbiztondo.","Days not listed","SOS Burger",[]],
+["Makan at Eliseos",["Food","Drinks","Bar"],"₱₱₱","makan.at.eliseos","379 Saint Jude Subdivision, Saint Jude, San Juan, La Union",[16.67152,120.32167],"Modern Filipino restaurant with Filipino and Ilocano influences; also serves coffee and cocktails.","Sun 8:00 AM – 9:00 PM · Mon 8:00 AM – 8:00 PM · Tue Closed · Wed Closed · Thu–Fri 8:00 AM – 8:00 PM · Sat 8:00 AM – 9:00 PM","Tuna Imbaliktad",[]],
+["Mama Pizza",["Food"],"₱₱","mamapizzaph","M8FV+JX4, San Juan, La Union",null,"Pizza restaurant in San Juan, La Union.","Days not listed","Pizza",[]],
+["Masa Bakehouse",["Drinks","Food","Dessert"],"₱","masabybarefoot","Costales St., Sitio Dappat, Ili Norte, San Juan, La Union",[16.67138,120.32116],"Bakehouse and café with breads, pastries, brunch and coffee.","Sun–Mon 8:00 AM – 6:00 PM · Tue Closed · Wed–Sat 8:00 AM – 6:00 PM","Bread & pastries",[]],
+["Miryinda",["Food"],"₱₱","miryinda","225 Urbiztondo Rd, San Juan, La Union",[16.66933,120.31898],"Casual local eatery in Urbiztondo.","Mon 10:00 AM – 5:00 PM · Tue–Wed Closed · Thu–Sun 10:00 AM – 5:00 PM","Crispy Pork Kare-Kare",[]],
+["NakNak Eatery",["Food"],"₱","naknakeatery","M85F+V4 San Juan, La Union",null,"Local eatery in San Juan.","Days not listed","Local comfort food",[]],
+["Nanumo Poke Club",["Food"],"₱₱","nanumopoke","Station Lane, Arbor Village, Maria Cristina, San Juan, La Union",[16.67012,120.32102],"Poke restaurant in Arbor Village.","Daily 11:00 AM – 7:00 PM","Poke bowl",[]],
+["Peppercorn Bar",["Bar","Drinks"],"₱₱₱","peppercornrecords","Station Lane, Maria Cristina, San Juan, La Union",[16.67032,120.32123],"Bar and records-focused spot in Arbor Village.","Days not listed","Cocktails",[]],
+["Sabong Fried Chicken",["Food"],"₱","sabongfc","National Highway / Great Northwest, Urbiztondo, San Juan, La Union",[16.67106,120.32025],"Fried chicken spot known for flavored chicken and casual dining.","Thu–Tue 11:00 AM – 2:00 PM & 5:00 PM – 8:30 PM · Wed Closed","Honey Bagoong Fried Chicken",[]],
+["Soms Thai",["Food"],"₱₱","somselyu","M86P+M5 San Juan, La Union",null,"Thai restaurant in San Juan.","Days not listed","Thai curry",[]],
+["Totos Flame-grilled Bad Decisions",["Food","Bar"],"₱₱","totosbaddecisions","M8HQ+M4 San Fernando City, La Union",null,"Flame-grilled food and drinks spot in La Union.","Days not listed","Flame-grilled burger",[]],
+["Ugly Bar",["Bar","Drinks"],"₱₱","theuglybar_lu","Urbiztondo Rd, Urbiztondo, San Juan, La Union",[16.66900,120.31910],"Bar on Urbiztondo Road.","Days not listed","Cocktails",[]],
+["BitBit",["Activities"],"₱₱","bitbit.bitbit","1st Floor, Urbiztondo, Great Northwest, MacArthur National Highway, San Juan, La Union",[16.66954,120.31836],"Lifestyle and souvenir shop at The Great Northwest.","Days not listed","Souvenirs",[]],
+["BitPic",["Activities"],"₱₱","bitpicstudio","1st Floor, Urbiztondo, Great Northwest, MacArthur National Highway, San Juan, La Union",[16.66954,120.31836],"Photo studio at The Great Northwest.","Days not listed","Polaroid / photo sessions",[]]
+];
+const places=raw.map((x,i)=>({id:i,name:x[0],categories:x[1],price:x[2],handle:x[3],address:x[4],coords:x[5],description:x[6],schedule:x[7],highlight:x[8],photos:x[9]||[]}));
+const foodMeta={
+"Bubba’s Pizza":["Italian / Pizza","🇮🇹"],"Curo La Union":["Café / Filipino Comfort Food","🇵🇭"],"El Union Coffee":["Specialty Coffee","☕"],"Fin and Folk":["Café / Surf Lifestyle","🏄"],"Flotsam and Jetsam":["International / Beach Dining","🌊"],"Funky Quarters":["Filipino / Western","🇵🇭"],"Katzenjama":["Japanese","🇯🇵"],"Kermit La Union":["Italian","🇮🇹"],"Little Canggu":["Indonesian–Filipino","🇮🇩🇵🇭"],"Mad Monkeys":["Burgers / American Comfort Food","🍔"],"Makan at Eliseos":["Modern Filipino / Ilocano","🇵🇭"],"Mama Pizza":["Italian / Pizza","🇮🇹"],"Masa Bakehouse":["Bakery / Café","🥐"],"Miryinda":["Filipino","🇵🇭"],"NakNak Eatery":["Filipino Comfort Food","🇵🇭"],"Nanumo Poke Club":["Poke / Hawaiian-inspired","🌺"],"Sabong Fried Chicken":["Filipino Fried Chicken","🇵🇭"],"Soms Thai":["Thai","🇹🇭"],"Totos Flame-grilled Bad Decisions":["Filipino / Flame-grilled","🔥"]};
+const barMeta={"Flotsam and Jetsam":["Beachfront Bar","🌊"],"Funky Quarters":["Restaurant Bar","🍹"],"Makan at Eliseos":["Cocktail Bar","🍸"],"Peppercorn Bar":["Records Bar","🎵"],"Totos Flame-grilled Bad Decisions":["Restaurant Bar","🍸"],"Ugly Bar":["Cocktail Bar","🍸"]};
+places.forEach(p=>{if(foodMeta[p.name]){p.cuisine=foodMeta[p.name][0];p.cuisineIcon=foodMeta[p.name][1]}if(barMeta[p.name]){p.barType=barMeta[p.name][0];p.barIcon=barMeta[p.name][1]}});
+let currentCategory="Food",userPos=null,map=null,userMarker=null,markers=[];
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function currentDay(){return new Date().getDay();}
+function dayNum(name){return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(name);}
+function dayMatches(token,d){token=token.trim();if(!token)return false;const parts=token.split(/[–-]/);if(parts.length===2){const a=dayNum(parts[0].trim().slice(0,3)),b=dayNum(parts[1].trim().slice(0,3));if(a<0||b<0)return false;return a<=b?d>=a&&d<=b:d>=a||d<=b;}return dayNum(token.slice(0,3))===d;}
+function currentSchedule(p){const s=p.schedule||'Days not listed',d=currentDay();if(s.startsWith('Daily '))return s.slice(6);for(const bit of s.split(' · ')){const match=bit.match(/^(.+?)\s+(\d{1,2}:\d{2}.*)$/);if(!match)continue;const days=match[1].trim(),time=match[2].trim();if(/closed/i.test(days)&&dayMatches(days.replace(/closed/ig,'').trim(),d))return 'Closed';if(dayMatches(days.replace(/closed/ig,'').trim(),d))return time;}return s==='Days not listed'?'Hours not listed':s;}
+function isOpen(p){const s=currentSchedule(p);if(s==='Hours not listed')return null;if(/^closed$/i.test(s))return false;const m=s.match(/(\d{1,2}:\d{2})\s*([AP]M).*?(\d{1,2}:\d{2})\s*([AP]M)/i);if(!m)return null;const cv=(t,a)=>((+t.split(':')[0]%12)+(a.toUpperCase()==='PM'?12:0))*60+ +t.split(':')[1];const n=new Date(),mins=n.getHours()*60+n.getMinutes(),a=cv(m[1],m[2]),b=cv(m[3],m[4]);return b>=a?mins>=a&&mins<=b:mins>=a||mins<=b;}
+function distance(p){
+ if(!userPos||!Array.isArray(p.coords)||p.coords.length<2)return null;
+ const lat=Number(p.coords[0]),lon=Number(p.coords[1]);
+ if(!Number.isFinite(lat)||!Number.isFinite(lon))return null;
+ const R=6371,dLat=(lat-userPos[0])*Math.PI/180,dLon=(lon-userPos[1])*Math.PI/180;
+ const a=Math.sin(dLat/2)**2+Math.cos(userPos[0]*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLon/2)**2;
+ return Number.isFinite(a)?R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)):null;
+}
+function photo(p){
+ return p.photo?`<img src="${esc(p.photo)}" alt="">`:
+ `<div class="fallback">${esc(p.name)}</div>`;
+}
+function card(p){const o=isOpen(p),d=distance(p),dist=Number.isFinite(d)?(d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km'):'—';const color={Food:'var(--food)',Drinks:'var(--drinks)',Bar:'var(--bar)',Dessert:'var(--dessert)',Activities:'var(--activity)'}[p.categories[0]]||'var(--line)';const initials=p.name.replace(/[^A-Za-z0-9 ]/g,'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();const cuisine=p.cuisine?`<div class="food-banner" style="background:${color}">${esc(p.cuisineIcon||'🍽️')} ${esc(p.cuisine)}</div>`:'';const bar=p.barType?`<div class="food-banner bar-kind">${esc(p.barIcon||'🍸')} ${esc(p.barType)}</div>`:'';return `<div class="card clickable" onclick="detail('${p.id}')"><div class="cardmain"><div class="thumb" style="background:${color}">${p.photos?.[0]?`<img src="${esc(p.photos[0])}" alt="${esc(p.name)}">`:`<div class="fallback">${esc(initials)}</div>`}</div><div class="cardbody"><div class="name">${esc(p.name)}</div>${p.categories.includes('Food')?cuisine:''}${p.categories.includes('Bar')?bar:''}<div class="handle">@${esc(p.handle)}</div><div class="status ${o===true?'open':o===false?'closed':'verify'}">${o===true?'OPEN NOW':o===false?'CLOSED':'HOURS VERIFY'}</div><div class="stats"><span>${esc(p.price)}</span><span>${dist}</span></div></div></div><div class="actions"><button class="btn go" onclick="event.stopPropagation();go('${p.id}')">Maps</button><button class="btn ig" onclick="event.stopPropagation();instagram('${p.id}')">Instagram</button></div></div>`}
+function setPage(id){
+ document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+ document.getElementById(id).classList.add("active");
+ window.scrollTo(0,0);
+ updateTabbar();
+}
+function backHome(){setPage("landing")}
+function backToCategory(){setPage("categoryPage")}
+function openCategory(cat){currentCategory=cat;currentSort='nearest';setPage('categoryPage');document.getElementById('categoryTitle').textContent=cat;document.getElementById('categoryBreadcrumb').textContent='Home › '+cat;document.getElementById('categorySearch').value='';renderCategory()}
+let currentSort='nearest';function renderCategory(){const q=document.getElementById('categorySearch').value.toLowerCase();let a=places.filter(p=>(currentCategory==='Nearby Favorites'||p.categories.includes(currentCategory))&&(`${p.name} ${p.handle} ${p.description}`.toLowerCase().includes(q)));if(currentCategory==='Nearby Favorites')a=a.filter(p=>distance(p)!==null);const cmp={alphabetical:(x,y)=>x.name.localeCompare(y.name),price:(x,y)=>x.price.length-y.price.length||x.name.localeCompare(y.name),nearest:(x,y)=>(isOpen(y)===true)-(isOpen(x)===true)||(distance(x)-distance(y))||x.name.localeCompare(y.name),open:(x,y)=>(isOpen(y)===true)-(isOpen(x)===true)||(distance(x)-distance(y))||x.name.localeCompare(y.name)}[currentSort]||((x,y)=>x.name.localeCompare(y.name));a.sort(cmp);const near=a.filter(p=>distance(p)!==null).sort((x,y)=>(isOpen(y)===true)-(isOpen(x)===true)||(distance(x)-distance(y))||x.name.localeCompare(y.name)).slice(0,2);let out='';if(currentCategory!=='Nearby Favorites'&&near.length)out+=`<div class="section-label">Nearest to You<small>Closest places based on your current location</small></div><div class="nearest-wrap">${near.map(card).join('')}</div>`;out+=`<div class="sortrow"><span>${a.length} places</span><select id="sortSelect" onchange="currentSort=this.value;renderCategory()"><option value="nearest" ${currentSort==='nearest'?'selected':''}>Nearest</option><option value="alphabetical" ${currentSort==='alphabetical'?'selected':''}>Alphabetical</option><option value="price" ${currentSort==='price'?'selected':''}>Price</option><option value="open" ${currentSort==='open'?'selected':''}>Open first</option></select></div>`;out+=a.length?`<div class="cards">${a.map(card).join('')}</div>`:`<div class="empty">${currentCategory==='Nearby Favorites'?'Allow location to see nearby favorites.':'Nothing found.'}</div>`;document.getElementById('categoryCards').innerHTML=out;}
+function detail(id){const p=places.find(x=>x.id==id),o=isOpen(p),d=distance(p);setPage('detailPage');document.getElementById('detailBody').dataset.brandId=id;document.getElementById('detailBreadcrumb').textContent='Home › '+p.categories[0]+' › '+p.name;const sug=nearbyCards(p),dist=Number.isFinite(d)?(d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km'):'Location unavailable';document.getElementById('detailBody').innerHTML=`<div class="hero-carousel">${renderPhotos(p)}</div><div class="detail"><h1>${esc(p.name)}</h1>${p.categories.includes('Food')&&p.cuisine?`<div class="food-banner" style="background:${({Food:'var(--food)',Drinks:'var(--drinks)',Bar:'var(--bar)',Dessert:'var(--dessert)',Activities:'var(--activity)'})[p.categories[0]]||'var(--food)'}">${esc(p.cuisineIcon||'🍽️')} ${esc(p.cuisine)}</div>`:''}${p.categories.includes('Bar')&&p.barType?`<div class="food-banner bar-kind">${esc(p.barIcon||'🍸')} ${esc(p.barType)}</div>`:''}<div class="handle">@${esc(p.handle)}</div><div class="tagrow">${p.categories.map(c=>`<span class="tag">${esc(c)}</span>`).join('')}</div><p class="description">${esc(p.description)}</p><div class="highlight"><small>HIGHLIGHT</small><b>${esc(p.highlight)}</b></div><div class="status ${o===true?'open':o===false?'closed':'verify'}">${o===true?'OPEN NOW':o===false?'CLOSED':'HOURS VERIFY'}</div><div class="info"><div class="row"><span>Today</span><b>${esc(currentSchedule(p))}</b></div><div class="row"><span>Price</span><b>${esc(p.price)}</b></div><div class="row"><span>Distance</span><b>${dist}</b></div><div class="row"><span>Address</span><b>${esc(p.address)}</b></div></div><div class="detail-actions"><button class="wide dark" onclick="go('${p.id}')">Maps</button><button class="wide light" onclick="instagram('${p.id}')">Instagram</button></div><div class="subsection" style="padding-left:0">More places nearby<small style="display:block;color:var(--muted);font-size:10px;margin-top:3px">Other brands close to this current brand area</small></div><div class="cards nearby" style="padding:0">${sug.length?sug.map(card).join(''):'<div class="empty">No nearby mapped brands yet.</div>'}</div></div>`}function renderPhotos(p){const a=(p.photos||[]).filter(Boolean);if(!a.length)return '<div class="hero-placeholder"><span>Recent photos</span><small>1080 × 1080</small></div>';return '<div class="photo-track">'+a.map((u,i)=>`<img src="${esc(u)}" alt="${esc(p.name)} photo ${i+1}">`).join('')+'</div><div class="photo-dots">'+a.map((_,i)=>`<span class="${i?'':'active'}"></span>`).join('')+'</div>'}
+function geoDistance(a,b){
+ if(!a||!b)return null;
+ const R=6371,dLat=(b[0]-a[0])*Math.PI/180,dLon=(b[1]-a[1])*Math.PI/180;
+ const x=Math.sin(dLat/2)**2+Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLon/2)**2;
+ return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+function nearbyCards(current){
+ if(!current.coords)return [];
+ return places
+   .filter(p=>p.id!==current.id&&p.coords)
+   .map(p=>({p,d:geoDistance(current.coords,p.coords)}))
+   .sort((a,b)=>(a.d-b.d)||a.p.name.localeCompare(b.p.name))
+   .slice(0,4)
+   .map(x=>x.p);
+}
+function instagram(id){const p=places.find(x=>x.id==id);window.location.href=p.ig}
+function go(id){
+ const p=places.find(x=>x.id==id);
+ let url=p.coords?`https://www.google.com/maps/dir/?api=1&destination=${p.coords[0]},${p.coords[1]}&destination_place_id=&travelmode=driving`:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name+" "+p.address+" La Union")}`;
+ addHistory(p);window.location.href=url;
+}
+function addHistory(p){
+ let h=JSON.parse(localStorage.getItem("lu_history")||"[]");
+ h.unshift({name:p.name,time:new Date().toISOString()});localStorage.setItem("lu_history",JSON.stringify(h.slice(0,40)));
+}
+function renderHistory(){
+ let h=JSON.parse(localStorage.getItem("lu_history")||"[]");
+ document.getElementById("historyList").innerHTML=h.length?h.map(x=>`<div class="historyitem"><b>${esc(x.name)}</b><small>${new Date(x.time).toLocaleString()}</small></div>`).join(""):`<div class="empty">Your places will appear here after you tap Maps.</div>`;
+}
+function initMap(){
+ if(map)return;
+ map=L.map("realMap",{zoomControl:true}).setView([16.6697,120.3198],15);
+ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+ renderMapMarkers();setTimeout(()=>map.invalidateSize(),150);
+}
+function renderMapMarkers(){
+ if(!map)return;markers.forEach(m=>m.remove());markers=[];
+ places.filter(p=>p.coords).forEach(p=>{
+  let m=L.marker(p.coords).addTo(map).bindPopup(`<b>${esc(p.name)}</b><br>${esc(p.category)} · ${esc(p.price)}<br><button class="btn view" onclick="detail('${p.id}')">View</button>`);
+  markers.push(m);
+ });
+}
+function requestLocation(){
+ locationStatus="locating";updateLocationUI();
+ if(!navigator.geolocation){locationStatus="unsupported";updateLocationUI();return;}
+ if(window.locationWatchId)navigator.geolocation.clearWatch(window.locationWatchId);
+ window.locationWatchId=navigator.geolocation.watchPosition(pos=>{
+   userPos=[Number(pos.coords.latitude),Number(pos.coords.longitude)];
+   locationStatus="ready";updateLocationUI();
+   if(document.getElementById("categoryPage")?.classList.contains("active"))renderCategory();
+   if(document.getElementById("detailPage")?.classList.contains("active")){
+     const id=document.getElementById("detailBody")?.dataset?.brandId;
+     if(id!==undefined)detail(id);
+   }
+ },err=>{
+   locationStatus=err.code===1?"denied":err.code===2?"unavailable":"timeout";updateLocationUI();
+ },{enableHighAccuracy:true,maximumAge:30000,timeout:15000});
+}
+function updateLocationUI(){
+ const el=document.getElementById("locationStatus");if(!el)return;
+ if(locationStatus==="locating")el.innerHTML='<div class="locating">📍 Locating you…</div>';
+ else if(locationStatus==="ready")el.innerHTML='<div class="located">📍 Location active</div>';
+ else el.innerHTML='<button class="location-enable" onclick="requestLocation()">Enable Location</button>';
+}
+function updateLocationUI(){
+ const el=document.getElementById("locationStatus");if(!el)return;
+ if(locationStatus==="locating")el.innerHTML='<div class="locating">📍 Locating you…</div>';
+ else if(locationStatus==="ready")el.innerHTML='<div class="located">📍 Location active</div>';
+ else el.innerHTML='<button class="location-enable" onclick="requestLocation()">Enable Location</button>';
+}
+
+function openNearby(){openCategory('Nearby Favorites')}function openTransportation(){setPage('transportPage');renderTransport()}
+const transportData=[
+ {type:'Drivers',name:'Marco Dela Cruz',contact:'0917 555 0142',body:'LU-2041'},
+ {type:'Drivers',name:'Jules Navarro',contact:'0920 555 0188',body:'LU-1187'},
+ {type:'Drivers',name:'Anton Reyes',contact:'0998 555 0264',body:'LU-3305'},
+ {type:'Motorcycle Rental',name:'Urbiztondo Moto',contact:'0918 555 0421',fb:'https://www.facebook.com/'},
+ {type:'Motorcycle Rental',name:'Surfside Scooters',contact:'0927 555 0632',fb:'https://www.facebook.com/'},
+ {type:'Motorcycle Rental',name:'San Juan Ride Co.',contact:'0995 555 0714',fb:'https://www.facebook.com/'},
+ {type:'Car Rental',name:'La Union Wheels',contact:'0917 555 0845',fb:'https://www.facebook.com/'},
+ {type:'Car Rental',name:'North Coast Cars',contact:'0920 555 0951',fb:'https://www.facebook.com/'},
+ {type:'Car Rental',name:'Sunset Drive Rentals',contact:'0998 555 1033',fb:'https://www.facebook.com/'}
+];
+let transportCurrent='Drivers';function transportType(t,b){transportCurrent=t;document.querySelectorAll('.transport-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderTransport()}function renderTransport(){const e=document.getElementById('transportList');if(!e)return;const a=transportData.filter(x=>x.type===transportCurrent);e.innerHTML=a.map(x=>`<div class="transport-card"><div class="transport-photo">${esc(x.name.split(/\s+/).map(w=>w[0]).slice(0,2).join(''))}</div><div><h3>${esc(x.name)}</h3><p>Contact: ${esc(x.contact)}</p>${x.type==='Drivers'?`<p>Body #: ${esc(x.body)}</p>`:''}<a class="contact-btn" href="tel:${esc(x.contact.replace(/\s/g,''))}">Call</a>${x.fb?`<a class="contact-btn" href="${x.fb}">Facebook</a>`:''}</div></div>`).join('')}
+
+const landmarks=[
+ {name:'Tangadan Falls',place:'San Gabriel, La Union',query:'Tangadan Falls La Union'},
+ {name:'Ma-Cho Temple',place:'San Fernando, La Union',query:'Ma-Cho Temple La Union'},
+ {name:'Baluarte Watchtower',place:'Luna, La Union',query:'Baluarte Watchtower Luna La Union'},
+ {name:'Bahay na Bato',place:'Luna, La Union',query:'Bahay na Bato Luna La Union'},
+ {name:'Luna Pebble Beach',place:'Luna, La Union',query:'Pebble Beach Luna La Union'},
+ {name:'Poro Point Lighthouse',place:'San Fernando, La Union',query:'Poro Point Lighthouse La Union'}
+];
+function openLandmarks(){setPage('landmarksPage');renderLandmarks()}
+function renderLandmarks(){const e=document.getElementById('landmarkGrid');if(!e)return;e.innerHTML=landmarks.map((x,i)=>`<button class="landmark-card" style="background:${['var(--landmark)','var(--activity)','var(--drinks)','var(--food)','var(--bar)','var(--dessert)'][i]}" onclick="openLandmarkMap('${encodeURIComponent(x.query)}')"><b>${esc(x.name)}</b><small>${esc(x.place)}</small></button>`).join('')}
+function openLandmarkMap(q){window.location.href=`https://www.google.com/maps/search/?api=1&query=${q}`}
+
+const emergencyData=[
+ {name:'Emergency Hotline',detail:'National / La Union emergency response',number:'911'},
+ {name:'La Union PDRRMO / Rescue',detail:'Provincial disaster response',number:'09985611519'},
+ {name:'San Juan Police Station',detail:'San Juan, La Union',number:'09473249303'},
+ {name:'San Juan Fire Station',detail:'BFP San Juan, La Union',number:'09191851900'},
+ {name:'Philippine Coast Guard',detail:'Coast Guard District Northwestern Luzon',number:'09457463430'}
+];
+function openEmergency(){setPage('emergencyPage');renderEmergency()}
+function renderEmergency(){const e=document.getElementById('emergencyList');if(!e)return;e.innerHTML=emergencyData.map(x=>`<div class="emergency-card"><h3>${esc(x.name)}</h3><p>${esc(x.detail)}</p><p><b>${esc(x.number)}</b></p><a class="call" href="tel:${esc(x.number)}">Call now</a></div>`).join('')}
+function updateTabbar(){document.body.classList.toggle('landing-active',document.getElementById('landing')?.classList.contains('active'))}
+function goHome(){setPage('landing');startLocation()}
+function startLocation(){if(!navigator.geolocation){locationStatus='unsupported';updateLocationUI();return}requestLocation()}
+function setPageWithTab(id){setPage(id);updateTabbar()}
+function initPromo(){const slides=[['Curo La Union','Specialty coffee + comfort food','drinks',1],['Little Canggu','Indo-Filipino beachfront dining','food',13],['BitPic','Polaroid + photo sessions','activity',27]];const colors={food:'var(--food)',drinks:'var(--drinks)',activity:'var(--activity)'};document.getElementById('promoTrack').innerHTML=slides.map((x,i)=>`<div class="promo-slide" style="background:${colors[x[2]]}" onclick="detail('${x[3]}')"><div class="promo-bg">${esc(x[0].split(/\s+/).map(w=>w[0]).slice(0,3).join(''))}</div><div class="promo-copy"><small>Featured · Coming soon</small><b>${esc(x[0])}</b><span>${esc(x[1])}</span></div></div>`).join('');document.getElementById('promoDots').innerHTML=slides.map((_,i)=>`<i class="${i?'':'active'}"></i>`).join('')}
+function init(){initPromo();startLocation();renderTransport();renderEmergency();updateTabbar()}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+<div class="tabbar"><button onclick="openTransportation()"><span class="tab-icon">⇄</span><br>Transport</button><button onclick="openNearby()"><span class="tab-icon">⌖</span><br>Nearby</button><button onclick="openEmergency()"><span class="tab-icon">✚</span><br>Emergency</button></div></body>
+</html>
