@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>La Union Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --ink:#202020;--muted:#777;--line:#e8e8e8;--bg:#faf9f6;--card:#fff;
+  --radius:18px;--gap:14px;--max:760px;--tab:#f4f2ee;
+}
+*{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
+body{font-size:15px;font-weight:400}.app{max-width:var(--max);margin:auto;min-height:100vh;padding-bottom:28px}
+button,input{font:inherit} button{border:0;cursor:pointer}.hidden{display:none!important}
+.page{padding:18px 16px 32px}.landing{padding-top:12px}
+.search{display:flex;gap:8px;margin-bottom:20px}
+.search input{width:100%;height:48px;border:1px solid var(--line);border-radius:15px;background:#fff;padding:0 16px;outline:none;font-size:15px}
+.feature-wrap{margin-bottom:28px}
+.feature-card{position:relative;overflow:hidden;border-radius:16px;background:#ddd;min-height:310px;cursor:pointer}
+.feature-card img{width:100%;height:100%;min-height:310px;object-fit:cover;display:block}
+.feature-placeholder{height:100%;min-height:310px;display:flex;align-items:flex-end;padding:22px;background:linear-gradient(135deg,#dfe8e1,#e8ded3)}
+.feature-copy{position:absolute;left:0;right:0;bottom:0;padding:46px 20px 20px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.65))}
+.feature-copy h2{margin:0 0 7px;font-size:23px;font-weight:700}.feature-copy p{margin:0;line-height:1.5;max-width:90%}
+.dots{display:flex;justify-content:center;gap:6px;margin-top:10px}.dot{width:6px;height:6px;border-radius:50%;background:#bbb}.dot.active{background:#333}
+.section-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin:0 0 10px;color:#666}
+.bento{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.bento button{min-height:96px;border-radius:16px;padding:14px 10px;text-align:left;background:var(--c);color:var(--ink);font-weight:700;font-size:14px}
+.bento .emoji{display:block;font-size:22px;margin-bottom:12px}
+.bottom-tabs{display:flex;gap:10px;position:fixed;z-index:50;left:50%;bottom:14px;transform:translateX(-50%);width:min(calc(100% - 28px),520px);padding:8px;border:1px solid var(--line);background:rgba(255,255,255,.94);backdrop-filter:blur(14px);border-radius:24px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.bottom-tabs button{flex:1;background:transparent;color:#777;font-size:12px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 4px}
+.bottom-tabs svg{width:25px;height:25px;stroke:#777;fill:none;stroke-width:2.2}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:14px}.back{width:48px;height:48px;min-width:48px;border-radius:50%;background:#fff;border:1px solid var(--line);font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}.crumb{min-height:48px;padding:0 17px;border-radius:999px;display:flex;align-items:center;background:#fff;border:1px solid var(--line);font-size:15px}
+.crumb{font-size:13px;color:#777;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cover{height:180px;border-radius:16px;background:#ddd;overflow:hidden;margin:0 0 20px;position:relative}
+.cover img{width:100%;height:100%;object-fit:cover}.cover-fallback{width:100%;height:100%;display:flex;align-items:center;padding:20px;font-size:28px;font-weight:700}
+.list{display:grid;gap:12px}.search-results:empty{display:none}.search-results .section-title{margin-top:0}.card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.brand-card{display:grid;grid-template-columns:118px minmax(0,1fr);min-height:128px;cursor:pointer;align-items:stretch}
+.brand-image{position:relative;background:#e4dfd5;height:100%;min-height:100%;overflow:hidden}.brand-image img{display:block;width:100%;height:100%;min-height:100%;object-fit:cover}
+.initials{height:100%;display:flex;align-items:center;justify-content:center;font-size:27px;font-weight:700}
+.status-banner{position:absolute;left:0;top:0;padding:6px 9px;background:#fff;font-size:11px;font-weight:700;border-bottom-right-radius:10px}.status-banner.status-open,.status-pill.status-open{background:#dff3e4;color:#176b2c}.status-banner.status-soon,.status-pill.status-soon{background:#fff0d6;color:#9a5b00}.status-banner.status-closed,.status-pill.status-closed{background:#f9dddd;color:#a52a2a}
+.brand-body{padding:13px}.brand-title-row{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.brand-title{font-size:16px;font-weight:700;margin:0;line-height:1.25}.price{font-size:12px;font-weight:700;white-space:nowrap}
+.meta{font-size:12px;color:#666;margin-top:6px}.desc{font-size:13px;line-height:1.45;margin-top:7px}.highlight{font-size:12px;font-weight:700;margin-top:8px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.tag{font-size:10px;border:1px solid #ddd;border-radius:999px;padding:4px 7px}
+.btn{height:40px;padding:0 14px;border-radius:12px;background:#202020;color:#fff;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.btn.light{background:#f3f1ed;color:#222}.btn-row{display:flex;gap:8px;margin-top:12px}.btn-row .btn{flex:1}
+.sorts{display:flex;gap:7px;overflow:auto;margin-bottom:12px}.sorts button{height:34px;padding:0 12px;border:1px solid var(--line);background:#fff;border-radius:10px;font-size:12px;font-weight:700;white-space:nowrap}.sorts button.active{background:#202020;color:#fff}
+.nearest{margin-bottom:18px}.nearest h3{font-size:14px;margin:0 0 9px;font-weight:700}
+.landmark-card{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:12px;padding:13px}.landmark-icon{width:52px;height:52px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:#eee;font-size:23px}.landmark-name{font-size:14px;font-weight:700}.landmark-desc{font-size:12px;color:#666;margin-top:4px;line-height:1.35}.distance{font-size:11px;color:#666;white-space:nowrap}
+.location-note{font-size:12px;color:#666;margin:-4px 0 12px}.location-inline{background:none;padding:0;color:#333;text-decoration:underline;font-size:12px}.landmark-main{min-width:0}.landmark-go{height:36px;padding:0 11px;font-size:11px;white-space:nowrap}
+.detail-cover{height:220px}.detail-name-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.detail-name{font-size:22px;font-weight:700;line-height:1.15}.status-pill{font-size:11px;font-weight:700;white-space:nowrap}
+.cuisine-banner{font-size:11px;font-weight:700;padding:7px 10px;border-radius:10px;background:#eee;margin-bottom:12px}.detail-section{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:12px}.detail-section h3{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:#666;margin:0 0 8px;font-weight:700}.detail-section p{margin:0;line-height:1.55;font-size:14px}
+.transport-tabs{display:flex;gap:8px;margin-bottom:16px}.transport-tabs button{flex:1;height:42px;border-radius:12px;background:#f1efeb;font-size:12px;font-weight:700}.transport-tabs button.active{background:#202020;color:#fff}
+.transport-row{display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:11px;padding:11px}.profile{width:54px;height:54px;border-radius:50%;object-fit:cover;background:#ddd;display:flex;align-items:center;justify-content:center;font-weight:700}.transport-name{font-weight:700;font-size:14px}.transport-desc{font-size:12px;color:#666;margin-top:4px}.em-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:13px}.em-name{font-weight:700;font-size:14px}.em-desc{font-size:12px;color:#666;margin-top:4px;line-height:1.35}.call{height:42px;min-width:105px}
+#map{height:55vh;border-radius:16px;border:1px solid var(--line)}.empty{padding:28px;text-align:center;color:#777;background:#fff;border:1px solid var(--line);border-radius:16px}
+@media(max-width:430px){
+  .feature-card,.feature-placeholder,.feature-card img{min-height:290px}.bento button{min-height:88px;font-size:13px}
+  .brand-card{grid-template-columns:105px minmax(0,1fr)}.em-row{grid-template-columns:1fr auto}.em-row .call{grid-column:2;grid-row:1 / span 2}.landmark-card{grid-template-columns:46px minmax(0,1fr);}.landmark-icon{width:46px;height:46px}.landmark-go{grid-column:2;justify-self:start;margin-top:2px}
+}
+
+/* Mobile interaction hardening */
+html, body { -webkit-tap-highlight-color: transparent; }
+button, a, [role="button"], .card, .category-card, .feature-card {
+  touch-action: manipulation;
+}
+button, a { position: relative; z-index: 2; }
+
+
+.distance{font-size:13px;color:#555;margin:2px 0 8px}
+.static-feature{height:auto!important;aspect-ratio:2.2/1;overflow:hidden;pointer-events:none}
+.static-feature img{width:100%;height:100%;object-fit:cover;display:block}
+.location-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center;z-index:9999;padding:14px}
+.location-sheet{width:min(100%,520px);background:#fff;border-radius:24px;padding:24px 20px 18px;box-shadow:0 10px 40px rgba(0,0,0,.2);text-align:center}
+.location-sheet h3{margin:6px 0 8px;font-size:20px}
+.location-sheet p{margin:0 0 18px;color:#666;line-height:1.45}
+.location-icon{font-size:30px}
+.location-sheet .primary{width:100%;height:48px;background:#202020;color:#fff;border-radius:0}
+.location-skip{margin-top:10px;background:transparent;color:#777;padding:8px}
+.transport-info{min-width:0;flex:1}
+.em-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
+.em-row .call{white-space:nowrap}
+
+/* Responsive featured + cuisine treatment */
+.feature-wrap{width:100%;margin:0 0 18px}
+.static-feature{width:100%;aspect-ratio:16/7;height:auto!important;border-radius:18px;overflow:hidden}
+.static-feature img{width:100%;height:100%;object-fit:cover;display:block}
+@media(max-width:600px){
+  .feature-wrap{margin-bottom:16px}
+  .static-feature{aspect-ratio:16/8.5;border-radius:16px}
+}
+.cuisine-chip{display:inline-flex;align-items:center;gap:5px;margin-top:7px;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.1px;background:#f0f0f0;color:#222}
+.cuisine-chip[data-cuisine="Japanese"]{background:#f4dede;color:#8a3030}
+.cuisine-chip[data-cuisine="Italian"]{background:#e6f0d9;color:#47652b}
+.cuisine-chip[data-cuisine="Filipino"]{background:#f6e6c7;color:#7a4d12}
+.cuisine-chip[data-cuisine="Thai"]{background:#e5dff3;color:#5b4788}
+.cuisine-chip[data-cuisine="Indonesian"]{background:#f1dfc9;color:#80502d}
+.cuisine-chip[data-cuisine="American"]{background:#dce9f4;color:#3c607d}
+.cuisine-chip[data-cuisine="Hawaiian"]{background:#d9eee8;color:#276b5c}
+.cuisine-chip[data-cuisine="Coffee"]{background:#e8ddd3;color:#6b4b35}
+.cuisine-chip[data-cuisine="Mexican"]{background:#f3dfd1;color:#91452d}
+.cuisine-chip[data-cuisine="Pizza"]{background:#f5dfd2;color:#8d4930}
+.cuisine-chip[data-cuisine="Ice Cream"]{background:#e9e0f1;color:#684a7d}
+.cuisine-chip[data-cuisine="Photography"]{background:#e1e7f0;color:#4b5e78}
+
+.hours-detail{margin:16px 0;padding:14px;border-radius:16px;background:#f7f7f7}
+.detail-label{font-size:13px;font-weight:700;margin-bottom:8px}
+.hours-line{display:flex;justify-content:space-between;gap:16px;padding:6px 0;border-bottom:1px solid #e5e5e5;font-size:13px}
+.hours-line:last-child{border-bottom:0}
+.hours-line span:last-child{text-align:right}
+
+.top{position:sticky;top:10px;z-index:1000;display:flex;align-items:center;gap:10px;padding:8px 0;pointer-events:none}
+.top .back,.top .crumb{pointer-events:auto;box-shadow:0 4px 16px rgba(0,0,0,.10);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);background:rgba(255,255,255,.94);border-radius:999px}
+.top .crumb{padding:8px 13px}
+.em-row a,.em-row a:visited,.em-row a:hover,.em-row .em-desc{text-decoration:none!important}
+.landmark-distance{font-size:13px;color:#555;margin:4px 0 7px}
+
+
+
+
+
+
+.hours-calendar-card{margin:16px 0;padding:14px 16px;border:1px solid #e2e2e2;border-radius:16px;background:#fff}
+.hours-calendar-card .detail-label{font-size:12px;font-weight:500;letter-spacing:.8px;color:#555;margin-bottom:10px}
+.hours-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.hours-day-card{min-width:0;min-height:66px;padding:9px 6px;border:1px solid #e7e7e7;border-radius:10px;background:#fafafa;display:flex;flex-direction:column;justify-content:space-between}
+.hours-day-name{font-size:11px;font-weight:700;color:#555}
+.hours-day-time{font-size:12px;line-height:1.35;color:#171717;word-break:normal}
+@media(max-width:700px){
+  .hours-calendar-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .hours-day-card{min-height:62px;padding:9px 10px}
+  .hours-day-name{font-size:12px}
+  .hours-day-time{font-size:13px}
+}
+@media(max-width:380px){
+  .hours-calendar-grid{grid-template-columns:1fr 1fr}
+  .hours-day-card{min-height:58px}
+  .hours-day-time{font-size:12px}
+}
+
+/* Edge-to-edge card photography */
+.brand-card{overflow:hidden;padding:0!important}
+.brand-card .card-image,.brand-card .image-wrap,.brand-card .brand-image{border-radius:0!important}
+.brand-card>div:first-child{border-radius:0!important}
+.brand-card img{border-radius:0!important}
+.brand-body{padding:14px 16px 16px}
+.category-section-title{margin:20px 2px 8px;font-size:12px;font-weight:700;letter-spacing:.8px;color:#666}
+</style>
+
+<script>
+(function(){
+  let lastAction=0;
+  document.addEventListener('click', function(e){
+    const interactive=e.target.closest('a,button,[role="button"],.card,.category-card,.feature-card');
+    if(!interactive) return;
+    const now=Date.now();
+    if(now-lastAction<350){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      return;
+    }
+    lastAction=now;
+  }, true);
+})();
+</script>
+
+</head>
+<body>
+<div class="app">
+  <main id="app"></main>
+  <nav id="tabs" class="bottom-tabs">
+    <button onclick="showPage('transport')"><svg viewBox="0 0 24 24"><circle cx="7" cy="17" r="3"></circle><circle cx="17" cy="17" r="3"></circle><path d="M7 17l3-8h5l2 8M10 9l-2-3h4l2 3"></path></svg><span>Transport</span></button>
+    <button onclick="showPage('nearby')"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"></path><circle cx="12" cy="9" r="2.2"></circle></svg><span>Nearby</span></button>
+    <button onclick="showPage('emergency')"><svg viewBox="0 0 24 24"><path d="M7 4v3M17 4v3M5 9h14M12 13v4M12 13l-3 2M12 13l3 2"></path><circle cx="12" cy="13" r="8"></circle></svg><span>Emergency</span></button>
+  </nav>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const DATA = {"brands":[{"id":"b1","name":"Bubba’s Pizza","categories":["Food"],"primary":"Food","price":"₱500+","ig":"@bubbas.pizza","address":"Bubba’s Pizza, Arbor Village, Maria Cristina, San Juan, 2514 La Union","lat":null,"lon":null,"description":"Pizza restaurant in San Juan, La Union.","schedule":"Monday: 12:00 PM – 3:00 PM, 4:00 PM – 9:00 PMTuesday: ClosedWednesday – Sunday: 12:00 PM – 3:00 PM, 4:00 PM – 9:00 PMNote: The restaurant takes a daily afternoon break from 3:00 PM to 4:00 PM.","highlight":"Pizza","cuisine":"Pizza","country":"🇮🇹","venue":"","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[["12:00 PM","3:00 PM"],["4:00 PM","9:00 PM"]],"Tue":[],"Wed":[["12:00 PM","3:00 PM"],["4:00 PM","9:00 PM"]],"Thu":[["12:00 PM","3:00 PM"],["4:00 PM","9:00 PM"]],"Fri":[["12:00 PM","3:00 PM"],["4:00 PM","9:00 PM"]],"Sat":[["12:00 PM","3:00 PM"],["4:00 PM","9:00 PM"]],"Sun":[["12:00 PM","3:00 PM"],["4:00 PM","9:00 PM"]]},"hoursDetail":"Monday — 12:00 PM–3:00 PM & 4:00 PM–9:00 PM\nTuesday — Closed\nWednesday — 12:00 PM–3:00 PM & 4:00 PM–9:00 PM\nThursday — 12:00 PM–3:00 PM & 4:00 PM–9:00 PM\nFriday — 12:00 PM–3:00 PM & 4:00 PM–9:00 PM\nSaturday — 12:00 PM–3:00 PM & 4:00 PM–9:00 PM\nSunday — 12:00 PM–3:00 PM & 4:00 PM–9:00 PM"},{"id":"b2","name":"Curo La Union","categories":["Food","Drinks"],"primary":"Food","price":"₱500+","ig":"@curolaunion","address":"Curbside Villa, Urbiztondo, San Juan, La Union","lat":16.6693,"lon":120.3189,"description":"Café and restaurant inside Curbside Villa; specialty coffee and elevated comfort food.","schedule":"Daily 7:00 AM–9:00 PM","highlight":"Cheese Tart","cuisine":"Café / Filipino","country":"🇵🇭","venue":"Café & Restaurant","website":"","facebook":"","featured":true,"featuredOrder":1,"photos":[],"hours":{"Daily":[["7:00 AM","9:00 PM"]]},"hoursDetail":"Daily — 7:00 AM–9:00 PM"},{"id":"b3","name":"El Union Coffee","categories":["Drink","Food"],"primary":"Drink","price":"₱200+","ig":"@elunioncoffee","address":"M85C+VVW, MacArthur National Highway, San Juan, La Union","lat":16.65969,"lon":120.32219,"description":"Specialty coffee shop.","schedule":"Mon–Thu 7:00 AM–9:00 PM; Fri–Sat 7:00 AM–10:00 PM; Sun 7:00 AM–9:00 PM","highlight":"Signature coffee","cuisine":"Coffee","country":"🇵🇭","venue":"Coffee Shop","website":"","facebook":"","featured":true,"featuredOrder":2,"photos":[],"hours":{"Mon":[["7:00 AM","9:00 PM"]],"Tue":[["7:00 AM","9:00 PM"]],"Wed":[["7:00 AM","9:00 PM"]],"Thu":[["7:00 AM","9:00 PM"]],"Fri":[["7:00 AM","10:00 PM"]],"Sat":[["7:00 AM","10:00 PM"]],"Sun":[["7:00 AM","9:00 PM"]]},"hoursDetail":"Monday — 7:00 AM–9:00 PM\nTuesday — 7:00 AM–9:00 PM\nWednesday — 7:00 AM–9:00 PM\nThursday — 7:00 AM–9:00 PM\nFriday — 7:00 AM–10:00 PM\nSaturday — 7:00 AM–10:00 PM\nSunday — 7:00 AM–9:00 PM"},{"id":"b4","name":"Fin and Folk","categories":["Activities"],"primary":"Activities","price":"₱200+","ig":"@finandfolkph","address":"M85C+VRQ The Great Northwest Philippines Travel Stop and Viewing Deck, 184 Manila N Rd, San Juan, 2514 La Union","lat":16.65969,"lon":120.32206,"description":"Surf and lifestyle spot.","schedule":"Friday\t8 AM–9 PM\nSaturday\t8 AM–9 PM\nSunday\t8 AM–8 PM\nMonday\t9 AM–5 PM\nTuesday\t9 AM–5 PM\nWednesday\t9 AM–5 PM\nThursday\t9 AM–5 PM","highlight":"Surf/lifestyle goods","cuisine":"Surf / Lifestyle","country":"🇵🇭","venue":"Lifestyle Shop","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[["9:00 AM","5:00 PM"]],"Tue":[["9:00 AM","5:00 PM"]],"Wed":[["9:00 AM","5:00 PM"]],"Thu":[["9:00 AM","5:00 PM"]],"Fri":[["8:00 AM","9:00 PM"]],"Sat":[["8:00 AM","9:00 PM"]],"Sun":[["8:00 AM","8:00 PM"]]},"hoursDetail":"Monday — 9:00 AM–5:00 PM\nTuesday — 9:00 AM–5:00 PM\nWednesday — 9:00 AM–5:00 PM\nThursday — 9:00 AM–5:00 PM\nFriday — 8:00 AM–9:00 PM\nSaturday — 8:00 AM–9:00 PM\nSunday — 8:00 AM–8:00 PM"},{"id":"b5","name":"Flotsam and Jetsam","categories":["Nightlife","Food"],"primary":"Nightlife","price":"₱500+","ig":"@flotsamandjetsamhostel","address":"M86F+PV2, MacArthur Hwy, San Juan, La Union","lat":16.66181,"lon":120.32469,"description":"Beach hostel and creative community for art, music, design and surf.","schedule":"Monday, Wednesday, Thursday, & Friday: 5:00 PM – 12:00 AMTuesday: ClosedSaturday & Sunday: 8:00 AM – 12:00 AM","highlight":"Beachfront stay / bar","cuisine":"International / Filipino","country":"🇵🇭","venue":"Beach Hostel & Bar","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[["5:00 PM","12:00 AM"]],"Tue":[],"Wed":[["5:00 PM","12:00 AM"]],"Thu":[["5:00 PM","12:00 AM"]],"Fri":[["5:00 PM","12:00 AM"]],"Sat":[["8:00 AM","12:00 AM"]],"Sun":[["8:00 AM","12:00 AM"]]},"hoursDetail":"Monday — 5:00 PM–12:00 AM\nTuesday — Closed\nWednesday — 5:00 PM–12:00 AM\nThursday — 5:00 PM–12:00 AM\nFriday — 5:00 PM–12:00 AM\nSaturday — 8:00 AM–12:00 AM\nSunday — 8:00 AM–12:00 AM"},{"id":"b6","name":"Fotomatk","categories":["Activities"],"primary":"Activities","price":"₱200+","ig":"@fotomatk","address":"M85C+VVW, MacArthur National Highway, San Juan, La Union","lat":16.65969,"lon":120.32219,"description":"Photo experience.","schedule":"Open everyday 8AM to 9PM","highlight":"Photo experience","cuisine":"Photography","country":"📷","venue":"Photo Studio","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Daily":[["8:00 AM","9:00 PM"]]},"hoursDetail":"Daily — 8:00 AM–9:00 PM"},{"id":"b7","name":"Funky Quarters","categories":["Nightlife","Food"],"primary":"Nightlife","price":"₱500+","ig":"@funkyquarters","address":"Brgy. Urbiztondo, MacArthur Hwy, San Juan, La Union","lat":16.65651,"lon":120.32126,"description":"Accommodation with restaurant and bar.","schedule":"Sunday – Tuesday: 12:00 PM – 12:00 AMWednesday – Thursday: ClosedFriday – Saturday: 12:00 PM – 2:00 AM","highlight":"Funky Tacos","cuisine":"Mexican / Filipino","country":"🇵🇭","venue":"Hotel / Restaurant / Bar","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Sun":[["12:00 PM","12:00 AM"]],"Mon":[["12:00 PM","12:00 AM"]],"Tue":[["12:00 PM","12:00 AM"]],"Wed":[],"Thu":[],"Fri":[["12:00 PM","2:00 AM"]],"Sat":[["12:00 PM","2:00 AM"]]},"hoursDetail":"Monday — 12:00 PM–12:00 AM\nTuesday — 12:00 PM–12:00 AM\nWednesday — Closed\nThursday — Closed\nFriday — 12:00 PM–2:00 AM\nSaturday — 12:00 PM–2:00 AM\nSunday — 12:00 PM–12:00 AM"},{"id":"b8","name":"Halu Ice Cream","categories":["Dessert"],"primary":"Dessert","price":"₱200+","ig":"@_hellohalu","address":"Urbiztondo Rd, San Juan, La Union","lat":null,"lon":null,"description":"Ice cream shop with vegan and non-vegan options.","schedule":"Sun 12:00–9:30 PM; Mon 12:00–9:30 PM; Tue closed; Wed–Sat 12:00–9:30 PM","highlight":"Ube ice cream","cuisine":"Ice Cream","country":"🍦","venue":"Ice Cream Shop","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Sun":[["12:00 PM","9:30 PM"]],"Mon":[["12:00 PM","9:30 PM"]],"Tue":[],"Wed":[["12:00 PM","9:30 PM"]],"Thu":[["12:00 PM","9:30 PM"]],"Fri":[["12:00 PM","9:30 PM"]],"Sat":[["12:00 PM","9:30 PM"]]},"hoursDetail":"Monday — 12:00 PM–9:30 PM\nTuesday — Closed\nWednesday — 12:00 PM–9:30 PM\nThursday — 12:00 PM–9:30 PM\nFriday — 12:00 PM–9:30 PM\nSaturday — 12:00 PM–9:30 PM\nSunday — 12:00 PM–9:30 PM"},{"id":"b9","name":"Ili Coffee","categories":["Drink"],"primary":"Drink","price":"₱200+","ig":"@ili.coffee","address":"Avecilla St., Brgy. Ili Sur, San Juan, La Union, 2514 Ili Sur, San Juan, 2514 La Union","lat":16.6688,"lon":120.31965,"description":"Coffee shop.","schedule":"Tuesday through Sunday from 8:00 AM to 5:00 PM, and closed on Mondays.","highlight":"Coffee","cuisine":"Coffee","country":"🇵🇭","venue":"Coffee Shop","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[],"Tue":[["8:00 AM","5:00 PM"]],"Wed":[["8:00 AM","5:00 PM"]],"Thu":[["8:00 AM","5:00 PM"]],"Fri":[["8:00 AM","5:00 PM"]],"Sat":[["8:00 AM","5:00 PM"]],"Sun":[["8:00 AM","5:00 PM"]]},"hoursDetail":"Monday — Closed\nTuesday — 8:00 AM–5:00 PM\nWednesday — 8:00 AM–5:00 PM\nThursday — 8:00 AM–5:00 PM\nFriday — 8:00 AM–5:00 PM\nSaturday — 8:00 AM–5:00 PM\nSunday — 8:00 AM–5:00 PM"},{"id":"b10","name":"Irugi Coffee","categories":["Drink","Dessert"],"primary":"Drink","price":"₱200+","ig":"@irugicoffee","address":"Brgy, Arbor Village, Irugi Coffee Bldg, Maria Cristina, San Juan, 2514 La Union","lat":16.67255,"lon":120.32185,"description":"Coffee shop in Arbor Village.","schedule":"Daily 8:00 AM–4:00 PM","highlight":"Iced Mocha","cuisine":"Coffee","country":"🇵🇭","venue":"Coffee Shop","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Daily":[["8:00 AM","4:00 PM"]]},"hoursDetail":"Daily — 8:00 AM–4:00 PM"},{"id":"b11","name":"July Grocery","categories":["Food","Drink"],"primary":"Food","price":"₱200+","ig":"@julygrocery","address":"225 Urbiztondo Rd, San Juan, 2514 La Union","lat":16.66933,"lon":120.31898,"description":"Grocery, café and lifestyle shop.","schedule":"9:00 AM to 5:00 PM on Mondays and from Thursday to Sunday.","highlight":"Local grocery finds","cuisine":"Grocery / Café","country":"🇵🇭","venue":"Grocery / Café","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[["9:00 AM","5:00 PM"]],"Tue":[],"Wed":[],"Thu":[["9:00 AM","5:00 PM"]],"Fri":[["9:00 AM","5:00 PM"]],"Sat":[["9:00 AM","5:00 PM"]],"Sun":[["9:00 AM","5:00 PM"]]},"hoursDetail":"Monday — 9:00 AM–5:00 PM\nTuesday — Closed\nWednesday — Closed\nThursday — 9:00 AM–5:00 PM\nFriday — 9:00 AM–5:00 PM\nSaturday — 9:00 AM–5:00 PM\nSunday — 9:00 AM–5:00 PM"},{"id":"b12","name":"Katzenjama","categories":["Nightlife","Food"],"primary":"Nightlife","price":"₱500+","ig":"@katzenjama","address":"M85F+53X, MacArthur Hwy, San Fernando City, La Union","lat":16.6579875,"lon":120.322734375,"description":"Japanese restaurant.","schedule":"Sunday – Thursday: 10:30 AM – 3:00 PM | 6:00 PM – 1:00 AMFriday – Saturday: 10:30 AM – 3:00 PM | 6:00 PM – 2:00 AM","highlight":"Japanese dishes","cuisine":"Japanese","country":"🇯🇵","venue":"Restaurant","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[["10:30 AM","3:00 PM"],["6:00 PM","1:00 AM"]],"Tue":[["10:30 AM","3:00 PM"],["6:00 PM","1:00 AM"]],"Wed":[["10:30 AM","3:00 PM"],["6:00 PM","1:00 AM"]],"Thu":[["10:30 AM","3:00 PM"],["6:00 PM","1:00 AM"]],"Fri":[["10:30 AM","3:00 PM"],["6:00 PM","2:00 AM"]],"Sat":[["10:30 AM","3:00 PM"],["6:00 PM","2:00 AM"]],"Sun":[["10:30 AM","3:00 PM"],["6:00 PM","1:00 AM"]]},"hoursDetail":"Monday — 10:30 AM–3:00 PM & 6:00 PM–1:00 AM\nTuesday — 10:30 AM–3:00 PM & 6:00 PM–1:00 AM\nWednesday — 10:30 AM–3:00 PM & 6:00 PM–1:00 AM\nThursday — 10:30 AM–3:00 PM & 6:00 PM–1:00 AM\nFriday — 10:30 AM–3:00 PM & 6:00 PM–2:00 AM\nSaturday — 10:30 AM–3:00 PM & 6:00 PM–2:00 AM\nSunday — 10:30 AM–3:00 PM & 6:00 PM–1:00 AM"},{"id":"b13","name":"Kermit La Union","categories":["Food","Drinks"],"primary":"Food","price":"₱500+","ig":"@kermitlaunion","address":"M85C+WX3, 183 2, 183 MacArthur Hwy, San Juan, La Union","lat":16.65981,"lon":120.32244,"description":"Italian restaurant with surf-lifestyle focus.","schedule":"11:00 AM to 10:00 PM on Monday through Wednesday, and from 10:00 AM to 11:00 PM on Thursday through Sunday.","highlight":"Pizza","cuisine":"Italian","country":"🇮🇹","venue":"Restaurant / Surf Stay","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[["11:00 AM","10:00 PM"]],"Tue":[["11:00 AM","10:00 PM"]],"Wed":[["11:00 AM","10:00 PM"]],"Thu":[["10:00 AM","11:00 PM"]],"Fri":[["10:00 AM","11:00 PM"]],"Sat":[["10:00 AM","11:00 PM"]],"Sun":[["10:00 AM","11:00 PM"]]},"hoursDetail":"Monday — 11:00 AM–10:00 PM\nTuesday — 11:00 AM–10:00 PM\nWednesday — 11:00 AM–10:00 PM\nThursday — 10:00 AM–11:00 PM\nFriday — 10:00 AM–11:00 PM\nSaturday — 10:00 AM–11:00 PM\nSunday — 10:00 AM–11:00 PM"},{"id":"b14","name":"Little Canggu","categories":["Food","Drinks"],"primary":"Food","price":"₱500+","ig":"@little.canggu","address":"MacArthur Hwy, Urbiztondo, San Juan, 2514 La Union","lat":16.66954,"lon":120.31836,"description":"Beachfront Indo-Filipino fusion with surf culture.","schedule":"Sun–Mon 8:00 AM–8:00 PM; Tue closed; Wed–Thu 8:00 AM–8:00 PM; Fri–Sat 8:00 AM–8:00 PM","highlight":"Bagnet Guling","cuisine":"Indonesian / Filipino","country":"🇮🇩🇵🇭","venue":"Beachfront Restaurant","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Sun":[["8:00 AM","8:00 PM"]],"Mon":[["8:00 AM","8:00 PM"]],"Tue":[],"Wed":[["8:00 AM","8:00 PM"]],"Thu":[["8:00 AM","8:00 PM"]],"Fri":[["8:00 AM","8:00 PM"]],"Sat":[["8:00 AM","8:00 PM"]]},"hoursDetail":"Monday — 8:00 AM–8:00 PM\nTuesday — Closed\nWednesday — 8:00 AM–8:00 PM\nThursday — 8:00 AM–8:00 PM\nFriday — 8:00 AM–8:00 PM\nSaturday — 8:00 AM–8:00 PM\nSunday — 8:00 AM–8:00 PM"},{"id":"b15","name":"Mad Monkeys","categories":["Food","Drinks"],"primary":"Food","price":"₱500+","ig":"@madmonkeyslu","address":"M84C+HG2, Brgy. Urbiztondo, Manila, North Road, San Juan, La Union","lat":16.65645,"lon":120.32134,"description":"Casual burgers and comfort food.","schedule":"Monday, Wednesday–Friday: 11:00 AM – 8:00 PMSaturday–Sunday: 11:00 AM – 10:00 PM","highlight":"SOS Burger","cuisine":"American / Burgers","country":"🇺🇸","venue":"Burger Restaurant","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[["11:00 AM","8:00 PM"]],"Tue":[],"Wed":[["11:00 AM","8:00 PM"]],"Thu":[["11:00 AM","8:00 PM"]],"Fri":[["11:00 AM","8:00 PM"]],"Sat":[["11:00 AM","10:00 PM"]],"Sun":[["11:00 AM","10:00 PM"]]},"hoursDetail":"Monday — 11:00 AM–8:00 PM\nTuesday — Closed\nWednesday — 11:00 AM–8:00 PM\nThursday — 11:00 AM–8:00 PM\nFriday — 11:00 AM–8:00 PM\nSaturday — 11:00 AM–10:00 PM\nSunday — 11:00 AM–10:00 PM"},{"id":"b16","name":"Makan at Eliseos","categories":["Food","Drink"],"primary":"Food","price":"₱1,000+","ig":"@makan.at.eliseos","address":"379 Saint Jude Subdivision, Saint Jude, San Juan, La Union","lat":16.67152,"lon":120.32167,"description":"Modern Filipino / Ilocano food with coffee and cocktails.","schedule":"Sun 8:00 AM–9:00 PM; Mon 8:00 AM–8:00 PM; Tue–Wed closed; Thu–Fri 8:00 AM–8:00 PM; Sat 8:00 AM–9:00 PM","highlight":"Tuna Imbaliktad","cuisine":"Filipino / Ilocano","country":"🇵🇭","venue":"Restaurant / Cocktail Bar","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Sun":[["8:00 AM","9:00 PM"]],"Mon":[["8:00 AM","8:00 PM"]],"Tue":[],"Wed":[],"Thu":[["8:00 AM","8:00 PM"]],"Fri":[["8:00 AM","8:00 PM"]],"Sat":[["8:00 AM","9:00 PM"]]},"hoursDetail":"Monday — 8:00 AM–8:00 PM\nTuesday — Closed\nWednesday — Closed\nThursday — 8:00 AM–8:00 PM\nFriday — 8:00 AM–8:00 PM\nSaturday — 8:00 AM–9:00 PM\nSunday — 8:00 AM–9:00 PM"},{"id":"b17","name":"Mama Pizza","categories":["Food"],"primary":"Food","price":"₱500+","ig":"@mamapizzaph","address":"M8FV+JX4, San Juan, La Union","lat":16.6740125,"lon":120.344953125,"description":"Pizza restaurant.","schedule":"Wednesday to Sunday, 4:00 PM to 10:00 PM","highlight":"Pizza","cuisine":"Pizza","country":"🇮🇹","venue":"Pizza Restaurant","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[],"Tue":[],"Wed":[["4:00 PM","10:00 PM"]],"Thu":[["4:00 PM","10:00 PM"]],"Fri":[["4:00 PM","10:00 PM"]],"Sat":[["4:00 PM","10:00 PM"]],"Sun":[["4:00 PM","10:00 PM"]]},"hoursDetail":"Monday — Closed\nTuesday — Closed\nWednesday — 4:00 PM–10:00 PM\nThursday — 4:00 PM–10:00 PM\nFriday — 4:00 PM–10:00 PM\nSaturday — 4:00 PM–10:00 PM\nSunday — 4:00 PM–10:00 PM"},{"id":"b18","name":"Masa Bakehouse","categories":["Food","Dessert"],"primary":"Food","price":"₱500+","ig":"@masabybarefoot","address":"Barangay, Costales st. Sitio Dappat, Ili Norte, San Juan, 2514 La Union","lat":16.67138,"lon":120.32116,"description":"Bakehouse and café.","schedule":"Sun–Mon 8:00 AM–6:00 PM; Tue closed; Wed–Sat 8:00 AM–6:00 PM","highlight":"Bread & pastries","cuisine":"Bakery / Café","country":"🇵🇭","venue":"Bakehouse & Café","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Sun":[["8:00 AM","6:00 PM"]],"Mon":[["8:00 AM","6:00 PM"]],"Tue":[],"Wed":[["8:00 AM","6:00 PM"]],"Thu":[["8:00 AM","6:00 PM"]],"Fri":[["8:00 AM","6:00 PM"]],"Sat":[["8:00 AM","6:00 PM"]]},"hoursDetail":"Monday — 8:00 AM–6:00 PM\nTuesday — Closed\nWednesday — 8:00 AM–6:00 PM\nThursday — 8:00 AM–6:00 PM\nFriday — 8:00 AM–6:00 PM\nSaturday — 8:00 AM–6:00 PM\nSunday — 8:00 AM–6:00 PM"},{"id":"b19","name":"Miryinda","categories":["Food","Dessert"],"primary":"Food","price":"₱500+","ig":"@miryinda","address":"225 Urbiztondo Rd, San Juan, 2514 La Union","lat":16.66933,"lon":120.31898,"description":"Casual local eatery.","schedule":"Mon 10:00 AM–5:00 PM; Tue–Wed closed; Thu–Sun 10:00 AM–5:00 PM","highlight":"Crispy Pork Kare-Kare","cuisine":"Filipino","country":"🇵🇭","venue":"Local Restaurant","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[["10:00 AM","5:00 PM"]],"Tue":[],"Wed":[],"Thu":[["10:00 AM","5:00 PM"]],"Fri":[["10:00 AM","5:00 PM"]],"Sat":[["10:00 AM","5:00 PM"]],"Sun":[["10:00 AM","5:00 PM"]]},"hoursDetail":"Monday — 10:00 AM–5:00 PM\nTuesday — Closed\nWednesday — Closed\nThursday — 10:00 AM–5:00 PM\nFriday — 10:00 AM–5:00 PM\nSaturday — 10:00 AM–5:00 PM\nSunday — 10:00 AM–5:00 PM"},{"id":"b20","name":"NakNak Eatery","categories":["Food"],"primary":"Food","price":"₱","ig":"","address":"183, San Juan, 2514 La Union","lat":null,"lon":null,"description":"Local eatery.","schedule":"open daily from 9:00 AM to 9:00 PM.","highlight":"Local comfort food","cuisine":"Filipino","country":"🇵🇭","venue":"Local Eatery","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Daily":[["9:00 AM","9:00 PM"]]},"hoursDetail":"Daily — 9:00 AM–9:00 PM"},{"id":"b21","name":"Nanumo Poke Club","categories":["Food"],"primary":"Food","price":"₱500+","ig":"@nanumopoke","address":"Station Lane, Arbor Village, Maria Cristina, San Juan, 2514 La Union","lat":16.67012,"lon":120.32102,"description":"Poke restaurant.","schedule":"Daily 11:00 AM–7:00 PM","highlight":"Poke bowl","cuisine":"Hawaiian / Japanese","country":"🇺🇸🇯🇵","venue":"Poke Restaurant","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Daily":[["11:00 AM","7:00 PM"]]},"hoursDetail":"Daily — 11:00 AM–7:00 PM"},{"id":"b22","name":"Peppercorn Bar and Records","categories":["Nightlife"],"primary":"Nightlife","price":"₱500+","ig":"@peppercornrecords","address":"Station Lane, Arbor Village, Maria Cristina, San Juan, 2514 La Union","lat":16.67032,"lon":120.32123,"description":"Records-focused bar.","schedule":"Monday–Sunday: 4:00 PM – 12:00 AM","highlight":"Cocktails","cuisine":"Cocktail Bar","country":"🍸","venue":"Records Bar","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Daily":[["4:00 PM","12:00 AM"]]},"hoursDetail":"Daily — 4:00 PM–12:00 AM"},{"id":"b23","name":"Sabong Fried Chicken","categories":["Food"],"primary":"Food","price":"₱500+","ig":"@sabongfc","address":"National Highway, Urbiztondo, San Juan, 2514 La Union","lat":16.67106,"lon":120.32025,"description":"Fried chicken and casual comfort food.","schedule":"Thu–Tue 11:00 AM–2:00 PM & 5:00–8:30 PM; Wed closed","highlight":"Honey Bagoong Fried Chicken","cuisine":"Filipino / Fried Chicken","country":"🇵🇭","venue":"Fried Chicken Restaurant","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[["11:00 AM","2:00 PM"],["5:00 PM","8:30 PM"]],"Tue":[["11:00 AM","2:00 PM"],["5:00 PM","8:30 PM"]],"Wed":[],"Thu":[["11:00 AM","2:00 PM"],["5:00 PM","8:30 PM"]],"Fri":[["11:00 AM","2:00 PM"],["5:00 PM","8:30 PM"]],"Sat":[["11:00 AM","2:00 PM"],["5:00 PM","8:30 PM"]],"Sun":[["11:00 AM","2:00 PM"],["5:00 PM","8:30 PM"]]},"hoursDetail":"Monday — 11:00 AM–2:00 PM & 5:00 PM–8:30 PM\nTuesday — 11:00 AM–2:00 PM & 5:00 PM–8:30 PM\nWednesday — Closed\nThursday — 11:00 AM–2:00 PM & 5:00 PM–8:30 PM\nFriday — 11:00 AM–2:00 PM & 5:00 PM–8:30 PM\nSaturday — 11:00 AM–2:00 PM & 5:00 PM–8:30 PM\nSunday — 11:00 AM–2:00 PM & 5:00 PM–8:30 PM"},{"id":"b24","name":"Som's Thai Restaurant Elyu","categories":["Food"],"primary":"Food","price":"₱200+","ig":"@somselyu","address":"M86P+M5 San Juan, La Union","lat":16.6096875,"lon":120.3104375,"description":"Thai restaurant.","schedule":"open daily from 11:00 AM to 9:00 PM or up to 10:00 PM","highlight":"Thai curry","cuisine":"Thai","country":"🇹🇭","venue":"Thai Restaurant","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Daily":[["11:00 AM","9:00 PM"]]},"hoursDetail":"Daily — 11:00 AM–9:00 PM"},{"id":"b25","name":"Totos Flame-grilled Bad Decisions","categories":["Food"],"primary":"Food","price":"₱200+","ig":"@totosbaddecisions","address":"296 King fisher street ili norte san juan, San Fernando City, 2514 La Union","lat":null,"lon":null,"description":"Flame-grilled food and drinks.","schedule":"3:30 PM to 9:00 PM on Mondays, Saturdays, and Sundays, and is closed Tuesday through Friday","highlight":"Flame-grilled burger","cuisine":"American / Filipino","country":"🇵🇭","venue":"Restaurant / Bar","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[["3:30 PM","9:00 PM"]],"Tue":[],"Wed":[],"Thu":[],"Fri":[],"Sat":[["3:30 PM","9:00 PM"]],"Sun":[["3:30 PM","9:00 PM"]]},"hoursDetail":"Monday — 3:30 PM–9:00 PM\nTuesday — Closed\nWednesday — Closed\nThursday — Closed\nFriday — Closed\nSaturday — 3:30 PM–9:00 PM\nSunday — 3:30 PM–9:00 PM"},{"id":"b26","name":"Ugly Bar","categories":["Nightlife"],"primary":"Nightlife","price":"₱500+","ig":"@theuglybar_lu","address":"Urbiztondo Rd, Urbiztondo, San Juan, 2514 La Union","lat":16.669,"lon":120.3191,"description":"Bar.","schedule":"10:00 AM to 3:00 PM (Monday and Thursday to Sunday) and is closed on Tuesdays and Wednesdays.","highlight":"Cocktails","cuisine":"Cocktail Bar","country":"🍸","venue":"Bar","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[["10:00 AM","3:00 PM"]],"Tue":[],"Wed":[],"Thu":[["10:00 AM","3:00 PM"]],"Fri":[["10:00 AM","3:00 PM"]],"Sat":[["10:00 AM","3:00 PM"]],"Sun":[["10:00 AM","3:00 PM"]]},"hoursDetail":"Monday — 10:00 AM–3:00 PM\nTuesday — Closed\nWednesday — Closed\nThursday — 10:00 AM–3:00 PM\nFriday — 10:00 AM–3:00 PM\nSaturday — 10:00 AM–3:00 PM\nSunday — 10:00 AM–3:00 PM"},{"id":"b27","name":"BitBit","categories":["Activities"],"primary":"Activities","price":"₱500+","ig":"@bitbit.bitbit","address":"1st Floor, Urbiztondo, Great Northwest, MacArthur National Highway, San Juan, 2514 La Union","lat":16.65969,"lon":120.32206,"description":"Lifestyle and souvenir shop.","schedule":"9:00 AM to 9:00 PM from Thursday to Monday, and from 8:00 AM to 8:00 PM on Tuesdays and Wednesdays.","highlight":"Souvenirs","cuisine":"Lifestyle / Souvenirs","country":"🎁","venue":"Lifestyle Shop","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[["9:00 AM","9:00 PM"]],"Tue":[["8:00 AM","8:00 PM"]],"Wed":[["8:00 AM","8:00 PM"]],"Thu":[["9:00 AM","9:00 PM"]],"Fri":[["9:00 AM","9:00 PM"]],"Sat":[["9:00 AM","9:00 PM"]],"Sun":[["9:00 AM","9:00 PM"]]},"hoursDetail":"Monday — 9:00 AM–9:00 PM\nTuesday — 8:00 AM–8:00 PM\nWednesday — 8:00 AM–8:00 PM\nThursday — 9:00 AM–9:00 PM\nFriday — 9:00 AM–9:00 PM\nSaturday — 9:00 AM–9:00 PM\nSunday — 9:00 AM–9:00 PM"},{"id":"b28","name":"BitPic","categories":["Activities"],"primary":"Activities","price":"₱500+","ig":"@bitpicstudio","address":"1st Floor, Urbiztondo, Great Northwest, MacArthur National Highway, San Juan, 2514 La Union","lat":16.65969,"lon":120.32206,"description":"Photo studio for Polaroid and photo sessions.","schedule":"9:00 AM to 9:00 PM from Thursday to Monday, and from 8:00 AM to 8:00 PM on Tuesdays and Wednesdays.","highlight":"Polaroid / photo sessions","cuisine":"Photography","country":"📷","venue":"Photo Studio","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[],"hours":{"Mon":[["9:00 AM","9:00 PM"]],"Tue":[["8:00 AM","8:00 PM"]],"Wed":[["8:00 AM","8:00 PM"]],"Thu":[["9:00 AM","9:00 PM"]],"Fri":[["9:00 AM","9:00 PM"]],"Sat":[["9:00 AM","9:00 PM"]],"Sun":[["9:00 AM","9:00 PM"]]},"hoursDetail":"Monday — 9:00 AM–9:00 PM\nTuesday — 8:00 AM–8:00 PM\nWednesday — 8:00 AM–8:00 PM\nThursday — 9:00 AM–9:00 PM\nFriday — 9:00 AM–9:00 PM\nSaturday — 9:00 AM–9:00 PM\nSunday — 9:00 AM–9:00 PM"}],"landmarks":[{"id":"l1","name":"Tangadan Falls","description":"Popular waterfall and hiking destination near San Juan.","address":"San Gabriel, La Union","lat":16.64353,"lon":120.44896,"maps":"https://www.google.com/maps/search/?api=1&query=Tangadan+Falls","category":"Landmark","icon":"💦","photo":""},{"id":"l2","name":"Ma-Cho Temple","description":"Taoist temple overlooking San Fernando and the sea.","address":"San Fernando City, La Union","lat":16.62114,"lon":120.31743,"maps":"https://www.google.com/maps/search/?api=1&query=Ma-Cho+Temple+La+Union","category":"Landmark","icon":"⛩️","photo":""},{"id":"l3","name":"Baluarte Watchtower","description":"Historic coastal watchtower in Luna.","address":"Luna, La Union","lat":16.85675,"lon":120.372861,"maps":"https://www.google.com/maps/search/?api=1&query=Baluarte+Watchtower+Luna+La+Union","category":"Landmark","icon":"🏛️","photo":""},{"id":"l4","name":"Bahay na Bato","description":"Stone and art attraction in Luna.","address":"Luna, La Union","lat":16.847695,"lon":120.351502,"maps":"https://www.google.com/maps/search/?api=1&query=Bahay+na+Bato+Luna+La+Union","category":"Landmark","icon":"🪨","photo":""},{"id":"l5","name":"Luna Pebble Beach","description":"Known for smooth rounded beach stones.","address":"Luna, La Union","lat":16.84384,"lon":120.3455,"maps":"https://www.google.com/maps/search/?api=1&query=Luna+Pebble+Beach+La+Union","category":"Landmark","icon":"🏖️","photo":""},{"id":"l6","name":"Poro Point Lighthouse","description":"Coastal lighthouse and landmark in San Fernando.","address":"Poro Point, San Fernando, La Union","lat":16.61486,"lon":120.28084,"maps":"https://www.google.com/maps/search/?api=1&query=Poro+Point+Lighthouse+La+Union","category":"Landmark","icon":"💡","photo":""}],"transport":[{"id":"t1","type":"Tricycle Drivers","name":"Junboy Tricycle Service","description":"Local tricycle • San Juan town trips • Beach & hotel transfers","phone":"0917 555 0171","facebook":"https://www.facebook.com/","photo":"","book":"Book"},{"id":"t2","type":"Tricycle Drivers","name":"Kuya Noli Tricycle Tours","description":"Tricycle service • Surf spots, food trips & short town rides","phone":"0917 555 0172","facebook":"https://www.facebook.com/","photo":"","book":"Book"},{"id":"t3","type":"Motorcycle Rental","name":"Lio Moto Rentals","description":"Automatic scooters • Daily rental • Helmet included","phone":"0917 555 0191","facebook":"https://www.facebook.com/","photo":"","book":"Book"},{"id":"t4","type":"Motorcycle Rental","name":"Urbiztondo Rides","description":"Scooters & small motorcycles • Flexible pickup","phone":"0917 555 0192","facebook":"https://www.facebook.com/","photo":"","book":"Book"},{"id":"t5","type":"Car Rental","name":"North Coast Car Hire","description":"Self-drive or with-driver • San Juan & La Union","phone":"0917 555 0201","facebook":"https://www.facebook.com/","photo":"","book":"Book"},{"id":"t6","type":"Car Rental","name":"La Union Drive Co.","description":"Sedans & SUVs • With-driver or self-drive options","phone":"0917 555 0202","facebook":"https://www.facebook.com/","photo":"","book":"Book"}],"emergency":[{"id":"e1","type":"Emergency","name":"911","description":"National emergency hotline","phone":"911","facebook":"","icon":"🚨","action":"Call"},{"id":"e2","type":"Rescue","name":"La Union PDRRMO","description":"Provincial disaster response / rescue","phone":"0998 561 1519","facebook":"","icon":"🚨","action":"Call"},{"id":"e3","type":"Police","name":"San Juan Municipal Police Station","description":"Police assistance • San Juan, La Union","phone":"072 720 2603","facebook":"","icon":"🚨","action":"Call"},{"id":"e4","type":"Fire","name":"San Juan Fire Station","description":"Fire and rescue","phone":"0917 185 3711","facebook":"","icon":"🚒","action":"Call"},{"id":"e5","type":"Coast Guard","name":"Coast Guard District Northwestern Luzon","description":"Maritime emergency / rescue","phone":"072 700 4474","facebook":"","icon":"🚨","action":"Call"}],"featured":[{"id":"b2","name":"Curo La Union","categories":["Food","Drinks"],"primary":"Food","price":"₱500+","ig":"@curolaunion","address":"Curbside Villa, Urbiztondo, San Juan, La Union","lat":null,"lon":null,"description":"Café and restaurant inside Curbside Villa; specialty coffee and elevated comfort food.","schedule":"Daily 7:00 AM–9:00 PM","highlight":"Cheese Tart","cuisine":"Café / Filipino","country":"🇵🇭","venue":"Café & Restaurant","website":"","facebook":"","featured":true,"featuredOrder":1,"photos":[]},{"id":"b3","name":"El Union Coffee","categories":["Drink","Food"],"primary":"Drink","price":"₱200+","ig":"@elunioncoffee","address":"M85C+VVW, MacArthur National Highway, San Juan, La Union","lat":null,"lon":null,"description":"Specialty coffee shop.","schedule":"Mon–Thu 7:00 AM–9:00 PM; Fri–Sat 7:00 AM–10:00 PM; Sun 7:00 AM–9:00 PM","highlight":"Signature coffee","cuisine":"Coffee","country":"🇵🇭","venue":"Coffee Shop","website":"","facebook":"","featured":true,"featuredOrder":2,"photos":[]},{"id":"b1","name":"Bubba’s Pizza","categories":["Food"],"primary":"Food","price":"₱500+","ig":"@bubbas.pizza","address":"Bubba’s Pizza, Arbor Village, Maria Cristina, San Juan, 2514 La Union","lat":null,"lon":null,"description":"Pizza restaurant in San Juan, La Union.","schedule":"Monday: 12:00 PM – 3:00 PM, 4:00 PM – 9:00 PMTuesday: ClosedWednesday – Sunday: 12:00 PM – 3:00 PM, 4:00 PM – 9:00 PMNote: The restaurant takes a daily afternoon break from 3:00 PM to 4:00 PM.","highlight":"Pizza","cuisine":"Pizza","country":"🇮🇹","venue":"","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[]},{"id":"b4","name":"Fin and Folk","categories":["Activities"],"primary":"Activities","price":"₱200+","ig":"@finandfolkph","address":"M85C+VRQ The Great Northwest Philippines Travel Stop and Viewing Deck, 184 Manila N Rd, San Juan, 2514 La Union","lat":null,"lon":null,"description":"Surf and lifestyle spot.","schedule":"Friday\t8 AM–9 PM\nSaturday\t8 AM–9 PM\nSunday\t8 AM–8 PM\nMonday\t9 AM–5 PM\nTuesday\t9 AM–5 PM\nWednesday\t9 AM–5 PM\nThursday\t9 AM–5 PM","highlight":"Surf/lifestyle goods","cuisine":"Surf / Lifestyle","country":"🇵🇭","venue":"Lifestyle Shop","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[]},{"id":"b5","name":"Flotsam and Jetsam","categories":["Nightlife","Food"],"primary":"Nightlife","price":"₱500+","ig":"@flotsamandjetsamhostel","address":"M86F+PV2, MacArthur Hwy, San Juan, La Union","lat":null,"lon":null,"description":"Beach hostel and creative community for art, music, design and surf.","schedule":"Monday, Wednesday, Thursday, & Friday: 5:00 PM – 12:00 AMTuesday: ClosedSaturday & Sunday: 8:00 AM – 12:00 AM","highlight":"Beachfront stay / bar","cuisine":"International / Filipino","country":"🇵🇭","venue":"Beach Hostel & Bar","website":"","facebook":"","featured":false,"featuredOrder":999,"photos":[]}]};
+const cats = ["Food","Drink","Dessert","Nightlife","Activities","Landmarks"];
+const STATIC_PHOTO = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85";
+const icons = {Food:"🍴",Drink:"☕",Dessert:"🍨",Nightlife:"🌙",Activities:"🏄",Landmarks:"📍"};
+let userPos = null, sortMode="nearest", currentPage="home", currentCategory="";
+let featureIndex=0, featureTimer=null;
+
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+function initials(name){return String(name||"").split(/\s+/).filter(Boolean).slice(0,3).map(x=>x[0]).join("").toUpperCase();}
+function slug(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-");}
+function legacyDirectionsUrl(p){return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent((p.name||"")+" "+(p.address||""));}
+function directionsUrl(lat,lon,address){if(lat!=null&&lon!=null)return "https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(lat+","+lon)+"&dir_action=navigate";if(address)return "https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(address)+"&dir_action=navigate";return "";}
+function openExternal(url){
+  if(!url || url==='#' || url==='https://www.facebook.com/' || url==='https://instagram.com/' || url==='https://www.instagram.com/') return;
+  window.location.href=url;
+}
+function distanceKm(a,b,c,d){const R=6371, p=Math.PI/180, x=(c-a)*p, y=(d-b)*p;const q=Math.sin(x/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin(y/2)**2;return R*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q));}
+function distanceText(lat,lon){
+  if(lat==null || lon==null) return "Location not mapped";
+  if(!userPos) return "Enable location to see distance";
+  let d=distanceKm(userPos.lat,userPos.lon,lat,lon);
+  return d<1?Math.round(d*1000)+" m away":d.toFixed(1)+" km away";
+}
+
+function parseTime(s){
+  let m=String(s||"").match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/i); if(!m)return null;
+  let h=+m[1], min=+(m[2]||0), ap=(m[3]||"").toUpperCase();
+  if(ap==="PM"&&h<12)h+=12;
+  if(ap==="AM"&&h===12)h=0;
+  return h*60+min;
+}
+function dayKey(){return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date().getDay()];}
+function fmtTime(mins){
+  let h=Math.floor((mins%1440)/60), m=mins%60, ap=h>=12?"PM":"AM", hh=h%12||12;
+  return hh+(m?":"+String(m).padStart(2,"0"):"")+ap;
+}
+function todaySlots(p){
+  let h=p.hours||{};
+  return h[dayKey()] ?? h.Daily ?? [];
+}
+function status(p){
+  let slots=todaySlots(p);
+  if(!Array.isArray(slots) || !slots.length) return {label:"Closed",kind:"closed"};
+  let now=new Date().getHours()*60+new Date().getMinutes();
+  for(const slot of slots){
+    let open=parseTime(slot[0]), close=parseTime(slot[1]);
+    if(open==null||close==null) continue;
+    let end=close;
+    if(end<=open) end+=1440;
+    let n=now;
+    if(n<open && end>1440) n+=1440;
+    if(n>=open && n<end){
+      let remaining=end-n;
+      return {label:"Open til "+fmtTime(end),kind:remaining<=60?"soon":"open"};
+    }
+  }
+  return {label:"Closed",kind:"closed"};
+}
+function distanceVal(p){
+  if(!userPos || p.lat==null || p.lon==null) return Infinity;
+  return distanceKm(userPos.lat,userPos.lon,p.lat,p.lon);
+}
+function distanceLabel(p){
+  if(p.lat==null || p.lon==null) return "Location not mapped";
+  if(!userPos){
+    if(locationError && locationError !== "Requesting your current location…") return "Enable location to see distance";
+    return "Enable location to see distance";
+  }
+  let d=distanceVal(p);
+  return d<1 ? Math.round(d*1000)+" m away" : d.toFixed(1)+" km away";
+}
+function cardImage(p, cls="brand-image"){
+  let photo=(p.photos&&p.photos[0])||p.photo||"";
+  if(photo) return '<div class="'+cls+'" style="background:#ddd"><img src="'+escapeHtml(photo)+'" alt="'+escapeHtml(p.name)+'" loading="lazy"></div>';
+  let cat=p.primary||"Food"; return '<div class="'+cls+'" style="background:'+({"Food":"#E7D7C9","Drink":"#DDE7E0","Dessert":"#E9DFE8","Nightlife":"#DED9E7","Activities":"#DCE6E8","Landmarks":"#E4E0D4"}[cat]||"#ddd")+'"></div>';
+}
+function brandCard(p){
+  const st=status(p), cats=p.categories||[], price=p.price||"";
+  return '<article class="card brand-card" onclick="brandDetail(\''+p.id+'\')">'+
+    '<div style="position:relative">'+cardImage(p)+
+    '<span class="status-banner status-'+escapeHtml(st.kind)+'">'+escapeHtml(st.label)+'</span></div>'+
+    '<div class="brand-body"><div class="brand-title-row"><h3 class="brand-title">'+escapeHtml(p.name)+'</h3><span class="price">'+escapeHtml(price)+'</span></div>'+
+    '<div class="distance">'+escapeHtml(distanceLabel(p))+'</div>'+
+    (p.cuisine||p.venue?'<div class="cuisine-chip" data-cuisine="'+escapeHtml((p.cuisine||p.venue||'').split('/')[0].trim())+'">'+escapeHtml((p.country?p.country+' ':'')+(p.cuisine||p.venue||''))+'</div>':'')+
+    '<div class="desc">'+escapeHtml(p.description)+'</div>'+
+    (p.highlight?'<div class="highlight">★ '+escapeHtml(p.highlight)+'</div>':'')+
+    '<div class="tags">'+cats.map(c=>'<span class="tag">'+escapeHtml(c)+'</span>').join("")+'</div></div></article>';
+}
+function cover(cat,title){
+  const coverImages={"Food": "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1400&q=85", "Drink": "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=1400&q=85", "Dessert": "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=1400&q=85", "Nightlife": "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=1400&q=85", "Activities": "https://images.unsplash.com/photo-1502680390469-be75c86b636f?auto=format&fit=crop&w=1400&q=85", "Landmarks": "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1400&q=85", "Emergency": "https://images.unsplash.com/photo-1584467735871-7d0c7b1c3b3e?auto=format&fit=crop&w=1400&q=85", "Transport": "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=1400&q=85"};
+  const image=coverImages[cat]||coverImages.Food;
+  return '<div class="cover"><img src="'+image+'" alt="'+escapeHtml(title)+'"></div>';
+}
+
+function updateFeaturedOnly(){return;}
+function legacyUpdateFeaturedOnly(){
+  const host=document.getElementById('featuredHost');
+  if(!host || !featured.length) return;
+  const b=featured[featureIndex % featured.length];
+  host.innerHTML=featuredCard(b);
+  const dots=document.getElementById('featuredDots');
+  if(dots) dots.innerHTML=featured.map((_,i)=>`<span class="dot ${i===featureIndex%featured.length?'active':''}"></span>`).join('');
+  const card=host.querySelector('[data-featured-id]');
+  if(card){
+    card.addEventListener('click',()=>openExternal(b.instagram||''));
+  }
+}
+
+let luRouting=false;
+function setRoute(state){ history.pushState(Object.assign({luApp:true},state), "", location.href); }
+function appBack(){
+  if(history.state && history.state.luApp && history.state.view!=="home") history.back();
+  else renderHome();
+}
+function renderRoute(state){
+  luRouting=true;
+  try{
+    if(!state || state.view==="home") renderHome();
+    else if(state.view==="category") showCategory(state.cat,true);
+    else if(state.view==="brand") brandDetail(state.id,true);
+    else if(state.view==="page") showPage(state.page,true);
+  }finally{ luRouting=false; }
+}
+window.addEventListener("popstate",function(e){ renderRoute(e.state); });
+function renderHome(){
+  if(!luRouting) history.replaceState({luApp:true,view:"home"}, "", location.href);
+  currentPage="home"; currentCategory="";
+  document.getElementById("tabs").classList.remove("hidden");
+  let featured='<section class="feature-wrap"><div class="feature-card static-feature"><img src="'+STATIC_PHOTO+'" alt="La Union beach"></div></section>';
+  let html='<div class="page landing"><div class="search"><input id="homeSearch" placeholder="Where are you going today?.." oninput="searchHome(this.value)"></div>'+
+    '<section id="searchFeed" class="list search-results" style="margin-top:-10px;margin-bottom:20px"></section>'+featured+
+    '<section><div class="section-title">Explore</div><div class="bento">'+cats.map(c=>'<button style="--c:'+({"Food":"#E7D7C9","Drink":"#DDE7E0","Dessert":"#E9DFE8","Nightlife":"#DED9E7","Activities":"#DCE6E8","Landmarks":"#E4E0D4"}[c])+'" onclick="showCategory(\''+c+'\')"><span class="emoji">'+icons[c]+'</span>'+c+'</button>').join("")+'</div></section></div>';
+  document.getElementById("app").innerHTML=html;
+  if(featureTimer){clearInterval(featureTimer);featureTimer=null;}
+  enableLocation();
+}
+function searchHome(q){
+  q=q.trim().toLowerCase(); let box=document.getElementById("searchFeed"); if(!box)return;
+  if(!q){box.innerHTML="";return}
+  let arr=DATA.brands.filter(b=>(b.name+" "+b.description+" "+b.cuisine+" "+b.venue).toLowerCase().includes(q)).slice(0,8);
+  box.innerHTML=arr.length?'<div class="section-title">Results</div>'+arr.map(brandCard).join(""):'<div class="empty">No matches yet.</div>';
+}
+function categoryStatusRank(p){
+  const s=status(p);
+  return s.kind==="open" ? 0 : s.kind==="soon" ? 1 : 2;
+}
+function sortCategoryBrands(arr,mode){
+  const out=arr.slice();
+  if(mode==="alpha"){
+    out.sort((a,b)=>a.name.localeCompare(b.name));
+  }else if(mode==="price"){
+    out.sort((a,b)=>priceValue(a)-priceValue(b) || a.name.localeCompare(b.name));
+  }else if(mode==="distance"){
+    out.sort((a,b)=>distanceVal(a)-distanceVal(b) || a.name.localeCompare(b.name));
+  }else{
+    out.sort((a,b)=>categoryStatusRank(a)-categoryStatusRank(b) || distanceVal(a)-distanceVal(b) || a.name.localeCompare(b.name));
+  }
+  return out;
+}
+function priceValue(p){
+  const m=String(p.price||"").replace(/[^0-9]/g,"");
+  return m ? Number(m) : 999999;
+}
+function showCategory(cat,fromHistory){
+  if(!fromHistory && !luRouting) setRoute(cat==="Landmarks"?{view:"page",page:"landmarks"}:{view:"category",cat:cat});
+  if(cat==="Landmarks"){renderLandmarks();return;}
+  currentPage="category"; currentCategory=cat; document.getElementById("tabs").classList.add("hidden");
+  let all=DATA.brands.filter(b=>b.primary===cat);
+  all.sort((a,b)=>distanceVal(a)-distanceVal(b));
+  const nearby=all.slice(0,2);
+  const rest=all.slice(2);
+  document.getElementById("app").innerHTML='<div class="page"><div class="top"><button class="back" onclick="appBack()">‹</button><div class="crumb">'+escapeHtml(cat)+'</div></div>'+cover(cat,cat)+
+    (nearby.length?'<div class="category-section-title">NEARBY</div><div class="list">'+nearby.map(brandCard).join("")+'</div>':'')+
+    '<div class="category-section-title">ALL '+escapeHtml(cat.toUpperCase())+'</div>'+
+    '<div class="sorts" aria-label="Sort category"><button class="active" onclick="sortBrands(this,\'open\')">Open first</button><button onclick="sortBrands(this,\'distance\')">Nearest</button><button onclick="sortBrands(this,\'alpha\')">A–Z</button><button onclick="sortBrands(this,\'price\')">₱ Price</button></div>'+
+    '<div id="brandList" class="list">'+sortCategoryBrands(rest,"open").map(brandCard).join("")+'</div></div>';
+}
+function sortBrands(btn,mode){
+  document.querySelectorAll(".sorts button").forEach(x=>x.classList.remove("active"));
+  btn.classList.add("active");
+  const arr=DATA.brands.filter(b=>b.primary===currentCategory);
+  const all=arr.slice();
+  all.sort((a,b)=>distanceVal(a)-distanceVal(b));
+  const rest=all.slice(2);
+  document.getElementById("brandList").innerHTML=sortCategoryBrands(rest,mode).map(brandCard).join("");
+}
+function brandDetail(id,fromHistory){
+  if(!fromHistory && !luRouting) setRoute({view:"brand",id:id});
+  let p=DATA.brands.find(x=>x.id===id);if(!p)return;document.getElementById("tabs").classList.add("hidden");
+  let st=status(p), photo=p.photos&&p.photos[0];
+  document.getElementById("app").innerHTML='<div class="page"><div class="top"><button class="back" onclick="appBack()">‹</button><div class="crumb">'+escapeHtml(p.primary)+'</div></div>'+
+  '<div class="cover detail-cover">'+(photo?'<img src="'+escapeHtml(photo)+'" alt="">':'<div class="cover-fallback" style="background:'+({"Food":"#E7D7C9","Drink":"#DDE7E0","Dessert":"#E9DFE8","Nightlife":"#DED9E7","Activities":"#DCE6E8","Landmarks":"#E4E0D4"}[p.primary]||"#ddd")+'">'+'</div>')+'</div>'+
+  '<div class="detail-name-row"><div class="detail-name">'+escapeHtml(p.name)+'</div><div class="status-pill status-'+escapeHtml(st.kind)+'">'+escapeHtml(st.label)+'</div></div>'+
+  (p.cuisine||p.venue?'<div class="cuisine-banner">'+escapeHtml((p.country?p.country+" ":"")+(p.cuisine||"")+(p.venue?" · "+p.venue:""))+'</div>':'')+
+  '<div class="detail-section"><h3>About</h3><p>'+escapeHtml(p.description)+'</p></div>'+
+  (p.highlight?'<div class="detail-section"><h3>Highlight</h3><p>'+escapeHtml(p.highlight)+'</p></div>':'')+
+  '<div class="hours-calendar-card"><div class="detail-label">HOURS</div><div class="hours-calendar-grid">'+["Fri","Sat","Sun","Mon","Tue","Wed","Thu"].map(function(d){
+    const slots=(p.hours||{})[d] ?? (p.hours||{}).Daily ?? [];
+    const value=Array.isArray(slots)&&slots.length ? slots.map(function(x){return x[0]+"–"+x[1]}).join("<br>") : "Closed";
+    const names={Fri:"Friday",Sat:"Saturday",Sun:"Sunday",Mon:"Monday",Tue:"Tuesday",Wed:"Wednesday",Thu:"Thursday"};
+    return '<div class="hours-day-card"><div class="hours-day-name">'+names[d]+'</div><div class="hours-day-time">'+value+'</div></div>';
+  }).join("")+'</div></div>'+
+  '<div class="detail-section"><h3>Location</h3><p>'+escapeHtml(p.address||"Location unavailable")+'</p><div class="btn-row"><a class="btn" href="'+directionsUrl(p.lat,p.lon,p.address)+'">Maps</a>'+(p.ig?'<a class="btn light" href="'+escapeHtml(p.ig)+'">Instagram</a>':'')+'</div></div></div>';
+}
+function showPage(page,fromHistory){
+  if(!fromHistory && !luRouting) setRoute({view:"page",page:page});
+  document.getElementById("tabs").classList.remove("hidden");
+  if(page==="transport")renderTransport();
+  else if(page==="nearby")renderNearby();
+  else if(page==="emergency")renderEmergency();
+}
+function renderNearby(){
+  currentPage="nearby";
+  document.getElementById("tabs").classList.add("hidden");
+  let arr=DATA.brands.slice().sort((a,b)=>((status(a).kind==="closed")-(status(b).kind==="closed")) || ((userPos&&a.lat!=null)?distanceKm(userPos.lat,userPos.lon,a.lat,a.lon):9999)-((userPos&&b.lat!=null)?distanceKm(userPos.lat,userPos.lon,b.lat,b.lon):9999));
+  let near=arr.slice(0,2);
+  document.getElementById("app").innerHTML='<div class="page"><div class="top"><button class="back" onclick="appBack()">‹</button><div class="crumb">Nearby</div></div>'+cover("Nearby","Activities")+'<div class="nearest"><h3>Nearest Favorites</h3><div class="list">'+near.map(brandCard).join("")+'</div></div><div class="sorts"><button class="active">Open first</button><button>A–Z</button><button>Price</button><button>Distance</button></div><div class="list">'+arr.map(brandCard).join("")+'</div></div>';
+}
+function renderLandmarks(){
+  currentPage="landmarks"; currentCategory="Landmarks";
+  document.getElementById("tabs").classList.add("hidden");
+  let arr=DATA.landmarks.slice().sort((a,b)=>distanceVal(a)-distanceVal(b) || a.name.localeCompare(b.name));
+  document.getElementById("app").innerHTML='<div class="page"><div class="top"><button class="back" onclick="appBack()">‹</button><div class="crumb">Landmarks</div></div>'+cover("Landmarks","Landmarks")+'<div class="sorts"><button class="active" onclick="sortLand(this,\'distance\')">Distance</button><button onclick="sortLand(this,\'alpha\')">A–Z</button><button onclick="sortLand(this,\'nearest\')">Nearest</button></div><div id="landmarkLocationNote" class="location-note"></div><div id="landmarkList" class="list">'+arr.map(landmarkCard).join("")+'</div></div>';
+  updateLandmarkLocationNote();
+}
+function distanceVal(x){return userPos&&x.lat!=null&&x.lon!=null?distanceKm(userPos.lat,userPos.lon,x.lat,x.lon):9999}
+function landmarkCard(l){
+  let go=directionsUrl(l.lat,l.lon,l.address);
+  let dist=distanceText(l.lat,l.lon);
+  let distanceHtml=(l.lat==null || l.lon==null)
+    ? '<div class="landmark-distance">Location not mapped</div>'
+    : userPos
+      ? '<div class="landmark-distance">'+escapeHtml(dist)+'</div>'
+      : '<div class="landmark-distance">Enable location to see distance</div>';
+  let goHtml=go?'<a class="btn landmark-go" href="'+escapeHtml(go)+'" target="_blank" rel="noopener">Go Here</a>':'<button class="btn landmark-go" onclick="enableLocation()">Try Location</button>';
+  return '<article class="card landmark-card"><div class="landmark-icon">'+escapeHtml(l.icon)+'</div><div class="landmark-main"><div class="landmark-name">'+escapeHtml(l.name)+'</div>'+distanceHtml+'<div class="landmark-desc">'+escapeHtml(l.description)+'</div></div>'+goHtml+'</article>'
+}
+function updateLandmarkLocationNote(){
+  let el=document.getElementById("landmarkLocationNote"); if(!el)return;
+  if(userPos){
+    el.innerHTML='Distances use your current GPS location. <button class="location-inline" onclick="enableLocation()">Refresh location</button>';
+  }else{
+    el.innerHTML='<span>'+escapeHtml(locationError||"Location permission is needed for exact distance.")+'</span> <button class="location-inline" onclick="enableLocation()">Try Again</button>';
+  }
+}
+function sortLand(btn,mode){document.querySelectorAll(".sorts button").forEach(x=>x.classList.remove("active"));btn.classList.add("active");let a=DATA.landmarks.slice();if(mode==="alpha")a.sort((x,y)=>x.name.localeCompare(y.name));else a.sort((x,y)=>distanceVal(x)-distanceVal(y)||x.name.localeCompare(y.name));document.getElementById("landmarkList").innerHTML=a.map(landmarkCard).join("");updateLandmarkLocationNote()}
+function renderTransport(){
+  document.getElementById("tabs").classList.add("hidden");
+  let type="Tricycle Drivers";
+  function render(){
+    let arr=DATA.transport.filter(x=>x.type===type);
+    document.getElementById("transportList").innerHTML=arr.map(t=>'<article class="card transport-row"><div class="profile">'+(t.photo?'<img class="profile" src="'+escapeHtml(t.photo)+'">':escapeHtml(initials(t.name)))+'</div><div class="transport-info"><div class="transport-name">'+escapeHtml(t.name)+'</div><div class="transport-desc">'+escapeHtml(t.description)+'</div></div><a class="btn" href="'+escapeHtml(t.facebook)+'">Book</a></article>').join("");
+  }
+  document.getElementById("app").innerHTML='<div class="page"><div class="top"><button class="back" onclick="appBack()">‹</button><div class="crumb">Transport</div></div>'+cover("Transport","Activities")+'<div style="height:12px"></div><div class="transport-tabs">'+["Tricycle Drivers","Motorcycle Rental","Car Rental"].map((x,i)=>'<button class="'+(i===0?"active":"")+'" onclick="selectTransportTab(this,\''+x+'\')">'+x+'</button>').join("")+'</div><div id="transportList" class="list"></div></div>';
+  window.selectTransportTab=function(btn,nextType){type=nextType;document.querySelectorAll(".transport-tabs button").forEach(b=>b.classList.remove("active"));btn.classList.add("active");render();};
+  render();
+}
+function renderEmergency(){
+  document.getElementById("tabs").classList.add("hidden");
+  document.getElementById("app").innerHTML='<div class="page"><div class="top"><button class="back" onclick="appBack()">‹</button><div class="crumb">Emergency</div></div>'+cover("Emergency","Nightlife")+'<div class="list">'+DATA.emergency.map(e=>'<article class="card em-row"><div><div class="em-name">'+escapeHtml(e.icon+" "+e.name)+'</div><div class="em-desc">'+escapeHtml(e.description)+' · '+escapeHtml(e.phone)+'</div></div><a class="btn call" href="tel:'+escapeHtml(e.phone.replace(/[^0-9+]/g,""))+'">Call Now</a></article>').join("")+'</div></div>';
+}
+function showLocationPrompt(){
+  if(document.getElementById("locationPrompt")) return;
+  let d=document.createElement("div");
+  d.id="locationPrompt";
+  d.className="location-modal";
+  d.innerHTML='<div class="location-sheet"><div class="location-icon">⌖</div><h3>Turn on location</h3><p>Use your current location to show nearby places and sort Food by distance.</p><button class="btn primary" onclick="enableLocation()">Turn on location</button><button class="location-skip" onclick="closeLocationPrompt()">Not now</button></div>';
+  document.body.appendChild(d);
+}
+function closeLocationPrompt(){let x=document.getElementById("locationPrompt");if(x)x.remove();}
+let locationError="";
+let locationWatchId=null;
+function redrawAfterLocation(){
+  if(currentPage==="category") showCategory(currentCategory);
+  else if(currentPage==="landmarks") renderLandmarks();
+  else if(currentPage==="nearby") renderNearby();
+}
+function locationErrorText(err){
+  if(err && err.code===1) return "Location permission is blocked. Allow location for this site in your browser, then tap Try Again.";
+  if(err && err.code===2) return "Your device could not determine your location. Turn on GPS/location services, then tap Try Again.";
+  if(err && err.code===3) return "Location request timed out. Tap Try Again.";
+  return "Your exact location is not available yet. Tap Try Again.";
+}
+function enableLocation(){
+  if(!navigator.geolocation){
+    locationError="This browser does not support location.";
+    redrawAfterLocation();
+    return;
+  }
+  locationError="Requesting your current location…";
+  redrawAfterLocation();
+  navigator.geolocation.getCurrentPosition(pos=>{
+    userPos={lat:pos.coords.latitude,lon:pos.coords.longitude};
+    locationError="";
+    closeLocationPrompt();
+    redrawAfterLocation();
+  },err=>{
+    locationError=locationErrorText(err);
+    closeLocationPrompt();
+    redrawAfterLocation();
+  },{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+}
+function startLocationWatch(){
+  if(!navigator.geolocation || locationWatchId!==null) return;
+  locationWatchId=navigator.geolocation.watchPosition(pos=>{
+    userPos={lat:pos.coords.latitude,lon:pos.coords.longitude};
+    locationError="";
+    redrawAfterLocation();
+  },err=>{
+    locationError=locationErrorText(err);
+    redrawAfterLocation();
+  },{enableHighAccuracy:true,maximumAge:10000,timeout:20000});
+}
+function requestLocation(){enableLocation();}
+function refreshCurrentDistances(){redrawAfterLocation();}
+startLocationWatch();
+if(!history.state || !history.state.luApp) history.replaceState({luApp:true,view:"home"}, "", location.href);
+try{renderHome();}catch(e){console.error(e);document.getElementById('app').innerHTML='<div style="padding:24px;font-family:Arial">Please refresh the page.</div>';} requestLocation();
+</script>
+</body></html>
